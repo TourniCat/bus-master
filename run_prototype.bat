@@ -63,19 +63,30 @@ if not defined GODOT_EXE (
 
 if not defined GODOT_EXE goto :godot_not_found
 
+rem If GODOT_PATH or PATH points at a GUI build, prefer a console sibling when available.
+for %%G in ("%GODOT_EXE%") do set "GODOT_DIR=%%~dpG"
+if exist "%GODOT_DIR%godot_console.exe" set "GODOT_EXE=%GODOT_DIR%godot_console.exe"
+if exist "%GODOT_DIR%godot4_console.exe" set "GODOT_EXE=%GODOT_DIR%godot4_console.exe"
+for %%F in ("%GODOT_DIR%Godot*_console.exe") do (
+    if exist "%%~fF" set "GODOT_EXE=%%~fF"
+)
+
 >>"%LATEST%" echo Godot executable: %GODOT_EXE%
 >>"%LATEST%" echo.
 >>"%LATEST%" echo --- Godot version ---
 "%GODOT_EXE%" --version >>"%LATEST%" 2>&1
 >>"%LATEST%" echo.
+>>"%LATEST%" echo NOTE: Prototype forces the Dummy audio driver because it currently has no audio.
 >>"%LATEST%" echo --- Prototype output ---
 
 echo [Bus Master] Launching prototype...
 echo [Bus Master] Latest log: "%LATEST%"
+echo [Bus Master] Audio driver: Dummy
 echo.
 
-rem --log-file catches engine/script errors even if the selected Godot executable is a GUI build.
-start "" /wait "%GODOT_EXE%" --path "%ROOT%" --verbose --log-file "%ENGINE_LOG%" >"%CONSOLE_LOG%" 2>&1
+rem Dummy audio avoids unrelated WASAPI/device failures during this gameplay-only prototype.
+rem --log-file captures engine/script output even when a GUI Godot executable is selected.
+start "" /wait "%GODOT_EXE%" --path "%ROOT%" --audio-driver Dummy --verbose --log-file "%ENGINE_LOG%" >"%CONSOLE_LOG%" 2>&1
 set "EXIT_CODE=%ERRORLEVEL%"
 
 if exist "%CONSOLE_LOG%" (
