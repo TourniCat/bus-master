@@ -35,7 +35,7 @@ var graph_positions: Array[Vector2] = []
 var osm_node_to_local: Dictionary = {}
 
 var stops: Array[Dictionary] = []
-var routes: Array[Array] = [[], [], []]
+var routes: Array[Array] = []
 var active_route: int = 0
 var place_mode: bool = true
 var status_text: String = "Loading OpenStreetMap..."
@@ -54,6 +54,8 @@ var excluded_roads: Array[String] = [
 
 func _ready() -> void:
 	font = ThemeDB.fallback_font
+	for _i in range(MAX_ROUTES):
+		routes.append([])
 	http = HTTPRequest.new()
 	http.timeout = 40.0
 	add_child(http)
@@ -488,7 +490,9 @@ func _edit_route(stop_id: int) -> void:
 
 func _clear_gameplay() -> void:
 	stops.clear()
-	routes = [[], [], []]
+	routes.clear()
+	for _i in range(MAX_ROUTES):
+		routes.append([])
 	active_route = 0
 	place_mode = true
 	status_text = "Cleared. Place stops on roads."
