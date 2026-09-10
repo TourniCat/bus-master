@@ -1,5 +1,5 @@
 [application]
-config/name="Bus Master Prototype"
+config/name="Flow Control Prototype"
 run/main_scene="res://main.tscn"
 
 [display]
