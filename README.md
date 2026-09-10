@@ -6,11 +6,71 @@ Bus Master의 첫 번째 **게임성 검증용 프로토타입**입니다.
 
 > **제한된 버스와 노선을 배치하고, 시간대별로 쌓이는 승객을 보며 노선을 계속 손보는 행동 자체가 재미있는가?**
 
-## 실행
+## Windows 빠른 실행
+
+최신 버전을 받은 뒤 저장소 루트의 아래 파일을 더블클릭합니다.
+
+```text
+run_prototype.bat
+```
+
+런처가 Godot을 찾아 프로토타입을 실행하고, 콘솔 출력과 엔진/스크립트 오류를 자동으로 기록합니다.
+
+### Godot을 못 찾는 경우
+
+런처는 다음 순서로 Godot 실행 파일을 찾습니다.
+
+1. `GODOT_PATH` 환경 변수
+2. 프로젝트 폴더 또는 `tools/` 안의 Godot 실행 파일
+3. 사용자 `Downloads` 폴더의 Godot console 실행 파일
+4. Windows `PATH`
+5. 일반적인 Godot/Steam 설치 위치
+
+그래도 못 찾으면 Godot console 실행 파일을 프로젝트 폴더에 넣는 것이 가장 간단합니다.
+
+또는 Windows 터미널에서 한 번만 설정할 수 있습니다.
+
+```bat
+setx GODOT_PATH "C:\Path\To\Godot_v4.x-stable_win64_console.exe"
+```
+
+새 터미널 또는 새로 실행한 BAT부터 적용됩니다.
+
+## 오류 로그 보내는 방법
+
+`run_prototype.bat`으로 실행하면 자동으로 다음 로그가 생깁니다.
+
+```text
+logs/prototype_latest.log
+```
+
+매 실행마다 이전 기록도 다음 형태로 보관됩니다.
+
+```text
+logs/prototype_YYYYMMDD_HHMMSS.log
+```
+
+오류가 났다면 저장소 루트의:
+
+```text
+copy_latest_log.bat
+```
+
+을 더블클릭합니다. 최신 로그 전체가 Windows 클립보드에 복사됩니다.
+
+그 다음 이 채팅에 **Ctrl+V**로 그대로 붙여넣으면 됩니다.
+
+로그 파일은 `.gitignore` 처리되어 GitHub에는 올라가지 않습니다.
+
+## Godot 에디터에서 직접 실행
+
+BAT을 사용하지 않으려면:
 
 1. Godot 4.x에서 이 저장소 폴더를 Import 합니다.
-2. `project.godot`을 열고 프로젝트를 실행합니다.
-3. 별도 에셋이나 플러그인은 필요 없습니다.
+2. `project.godot`을 엽니다.
+3. 프로젝트를 실행합니다.
+
+별도 에셋이나 플러그인은 필요 없습니다.
 
 ## 조작
 
