@@ -1,21 +1,26 @@
 extends Node2D
 
-const BUILD: String = "0.2.0-osm-map"
+const BUILD: String = "0.2.1-osm-zoom"
 const OVERPASS_URL: String = "https://overpass-api.de/api/interpreter"
-const CACHE_PATH: String = "user://bus_master_gangnam_osm.json"
+const CACHE_PATH: String = "user://bus_master_gangnam_osm_v2.json"
 
 const MAP_RECT := Rect2(20, 80, 980, 600)
 const PANEL_X: float = 1020.0
+const BG_COLOR := Color("#f4f2ec")
 
-# Gangnam Station test area. About 2 km scale.
-const SOUTH: float = 37.4890
-const WEST: float = 127.0150
-const NORTH: float = 37.5070
-const EAST: float = 127.0400
-const AREA_NAME: String = "Gangnam Station"
+# Compact Gangnam Station test area: roughly 0.9 km x 0.9 km.
+const SOUTH: float = 37.4938
+const WEST: float = 127.0225
+const NORTH: float = 37.5019
+const EAST: float = 127.0328
+const AREA_NAME: String = "Gangnam Station — Compact"
 
 const MAX_STOPS: int = 12
 const MAX_ROUTES: int = 3
+const MIN_ZOOM: float = 1.0
+const MAX_ZOOM: float = 4.0
+const DEFAULT_ZOOM: float = 1.35
+const ZOOM_STEP: float = 1.18
 
 var font: Font
 var http: HTTPRequest
@@ -39,6 +44,10 @@ var routes: Array[Array] = []
 var active_route: int = 0
 var place_mode: bool = true
 var status_text: String = "Loading OpenStreetMap..."
+
+var view_zoom: float = DEFAULT_ZOOM
+var view_offset: Vector2 = Vector2.ZERO
+var panning: bool = false
 
 var route_colors: Array[Color] = [
 	Color("#e25d68"),
@@ -78,7 +87,7 @@ func _load_map(force_network: bool) -> void:
 	_clear_map()
 
 	if not force_network and FileAccess.file_exists(CACHE_PATH):
-		var file := FileAccess.open(CACHE_PATH, FileAccess.READ)
+		var file: FileAccess = FileAccess.open(CACHE_PATH, FileAccess.READ)
 		if file != null:
 			var text: String = file.get_as_text()
 			file.close()
@@ -150,7 +159,7 @@ func _on_request_completed(
 		queue_redraw()
 		return
 
-	var file := FileAccess.open(CACHE_PATH, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(CACHE_PATH, FileAccess.WRITE)
 	if file != null:
 		file.store_string(text)
 		file.close()
@@ -209,7 +218,7 @@ func _parse_osm(root_variant: Variant) -> void:
 		_fail_parse("No drivable roads found in this area.")
 		return
 
-	status_text = "Map ready. Place stops on roads."
+	status_text = "Map ready. Wheel to zoom; middle-drag to pan."
 	_log("OSM ready roads=%d nodes=%d buildings=%d parks=%d water=%d poi=%d cache=%s" % [
 		road_lines.size(), graph_positions.size(), buildings.size(),
 		parks.size(), waters.size(), pois.size(), str(loaded_from_cache)
@@ -370,37 +379,70 @@ func _input(event: InputEvent) -> void:
 				_choose_route(2)
 			KEY_R:
 				_clear_gameplay()
+			KEY_0:
+				_reset_view()
 
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		_pointer(event.position)
+	if event is InputEventMouseButton:
+		var mouse_event: InputEventMouseButton = event
+		if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP and mouse_event.pressed:
+			if MAP_RECT.has_point(mouse_event.position):
+				_zoom_at(mouse_event.position, ZOOM_STEP)
+			return
+		if mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN and mouse_event.pressed:
+			if MAP_RECT.has_point(mouse_event.position):
+				_zoom_at(mouse_event.position, 1.0 / ZOOM_STEP)
+			return
+		if mouse_event.button_index == MOUSE_BUTTON_MIDDLE:
+			panning = mouse_event.pressed and MAP_RECT.has_point(mouse_event.position)
+			return
+		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
+			_pointer(mouse_event.position)
+			return
+
+	if event is InputEventMouseMotion and panning:
+		var motion: InputEventMouseMotion = event
+		view_offset += motion.relative
+		queue_redraw()
+		return
+
 	if event is InputEventScreenTouch and event.pressed:
 		_pointer(event.position)
 
 
-func _pointer(pos: Vector2) -> void:
+func _pointer(screen_pos: Vector2) -> void:
 	var buttons: Array[Rect2] = _buttons()
 	for i in range(3):
-		if buttons[i].has_point(pos):
+		if buttons[i].has_point(screen_pos):
 			_choose_route(i)
 			return
-	if buttons[3].has_point(pos):
+	if buttons[3].has_point(screen_pos):
 		place_mode = true
 		status_text = "Stop mode: click a road."
 		return
-	if buttons[4].has_point(pos):
+	if buttons[4].has_point(screen_pos):
 		_clear_gameplay()
 		return
-	if buttons[5].has_point(pos):
+	if buttons[5].has_point(screen_pos):
 		_reload_osm()
 		return
-
-	if loading or not error_text.is_empty() or not MAP_RECT.has_point(pos):
+	if buttons[6].has_point(screen_pos):
+		_zoom_at(MAP_RECT.get_center(), 1.0 / ZOOM_STEP)
+		return
+	if buttons[7].has_point(screen_pos):
+		_zoom_at(MAP_RECT.get_center(), ZOOM_STEP)
+		return
+	if buttons[8].has_point(screen_pos):
+		_reset_view()
 		return
 
+	if loading or not error_text.is_empty() or not MAP_RECT.has_point(screen_pos):
+		return
+
+	var map_pos: Vector2 = _screen_to_map(screen_pos)
 	if place_mode:
-		_place_stop(pos)
+		_place_stop(map_pos)
 	else:
-		var stop_id: int = _find_stop(pos)
+		var stop_id: int = _find_stop(map_pos)
 		if stop_id >= 0:
 			_edit_route(stop_id)
 
@@ -410,9 +452,12 @@ func _buttons() -> Array[Rect2]:
 		Rect2(PANEL_X, 126, 72, 34),
 		Rect2(PANEL_X + 82, 126, 72, 34),
 		Rect2(PANEL_X + 164, 126, 72, 34),
-		Rect2(PANEL_X, 182, 236, 38),
-		Rect2(PANEL_X, 240, 236, 38),
-		Rect2(PANEL_X, 298, 236, 38)
+		Rect2(PANEL_X, 180, 236, 36),
+		Rect2(PANEL_X, 226, 236, 36),
+		Rect2(PANEL_X, 272, 236, 36),
+		Rect2(PANEL_X, 326, 112, 34),
+		Rect2(PANEL_X + 124, 326, 112, 34),
+		Rect2(PANEL_X, 370, 236, 34)
 	]
 
 
@@ -435,7 +480,7 @@ func _place_stop(pos: Vector2) -> void:
 	var snapped: Vector2 = graph_positions[graph_id]
 	for stop in stops:
 		var old_pos: Vector2 = stop["pos"]
-		if old_pos.distance_to(snapped) < 22.0:
+		if old_pos.distance_to(snapped) < 22.0 / view_zoom:
 			status_text = "Too close to another stop."
 			return
 
@@ -451,7 +496,7 @@ func _place_stop(pos: Vector2) -> void:
 
 func _nearest_graph_node(pos: Vector2) -> int:
 	var best: int = -1
-	var best_distance: float = 34.0
+	var best_distance: float = 34.0 / view_zoom
 	for i in range(graph_positions.size()):
 		var distance: float = pos.distance_to(graph_positions[i])
 		if distance < best_distance:
@@ -462,7 +507,7 @@ func _nearest_graph_node(pos: Vector2) -> int:
 
 func _find_stop(pos: Vector2) -> int:
 	var best: int = -1
-	var best_distance: float = 18.0
+	var best_distance: float = 18.0 / view_zoom
 	for i in range(stops.size()):
 		var stop_pos: Vector2 = stops[i]["pos"]
 		var distance: float = pos.distance_to(stop_pos)
@@ -508,11 +553,53 @@ func _reload_osm() -> void:
 	_load_map(true)
 
 
+func _zoom_at(screen_pos: Vector2, factor: float) -> void:
+	var old_zoom: float = view_zoom
+	var new_zoom: float = clampf(old_zoom * factor, MIN_ZOOM, MAX_ZOOM)
+	if is_equal_approx(old_zoom, new_zoom):
+		return
+	var map_pos: Vector2 = _screen_to_map(screen_pos)
+	view_zoom = new_zoom
+	var center: Vector2 = MAP_RECT.get_center()
+	view_offset = screen_pos - center - (map_pos - center) * view_zoom
+	status_text = "Zoom %d%%" % int(round(view_zoom * 100.0))
+	queue_redraw()
+
+
+func _reset_view() -> void:
+	view_zoom = DEFAULT_ZOOM
+	view_offset = Vector2.ZERO
+	status_text = "View reset. Wheel zoom; middle-drag pan."
+	queue_redraw()
+
+
+func _screen_to_map(screen_pos: Vector2) -> Vector2:
+	var center: Vector2 = MAP_RECT.get_center()
+	return center + (screen_pos - center - view_offset) / view_zoom
+
+
+func _view_translation() -> Vector2:
+	var center: Vector2 = MAP_RECT.get_center()
+	return center + view_offset - center * view_zoom
+
+
 func _draw() -> void:
-	draw_rect(Rect2(0, 0, 1280, 720), Color("#f4f2ec"), true)
-	_draw_map()
+	draw_rect(Rect2(0, 0, 1280, 720), BG_COLOR, true)
+	draw_rect(MAP_RECT, Color("#faf9f5"), true)
+
+	# Scale and pan all map-space content together.
+	draw_set_transform(_view_translation(), 0.0, Vector2(view_zoom, view_zoom))
+	_draw_map_content()
 	_draw_routes()
 	_draw_stops()
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	# Immediate-mode drawing has no clip rect, so mask anything that crossed the map border.
+	draw_rect(Rect2(0, 0, 1000, 80), BG_COLOR, true)
+	draw_rect(Rect2(0, 680, 1000, 40), BG_COLOR, true)
+	draw_rect(Rect2(0, 80, 20, 600), BG_COLOR, true)
+	draw_rect(MAP_RECT, Color("#aaa69d"), false, 1.0)
+
 	_draw_panel()
 
 	if loading:
@@ -521,9 +608,7 @@ func _draw() -> void:
 		_draw_message(error_text, Color("#a83f3f"))
 
 
-func _draw_map() -> void:
-	draw_rect(MAP_RECT, Color("#faf9f5"), true)
-
+func _draw_map_content() -> void:
 	for polygon in waters:
 		draw_colored_polygon(polygon, Color("#d7e8ef"))
 	for polygon in parks:
@@ -541,8 +626,6 @@ func _draw_map() -> void:
 	for poi in pois:
 		draw_circle(poi["pos"], 2.8, _poi_color(String(poi["kind"])))
 
-	draw_rect(MAP_RECT, Color("#aaa69d"), false, 1.0)
-
 
 func _draw_routes() -> void:
 	for route_index in range(routes.size()):
@@ -556,18 +639,19 @@ func _draw_routes() -> void:
 			var b_graph: int = int(stops[b_stop]["graph_id"])
 			var path: PackedVector2Array = graph.get_point_path(a_graph, b_graph)
 			if path.size() >= 2:
-				draw_polyline(path, Color("#fffdf8"), 9.0, true)
-				draw_polyline(path, route_colors[route_index], 5.0, true)
+				draw_polyline(path, Color("#fffdf8"), 9.0 / view_zoom, true)
+				draw_polyline(path, route_colors[route_index], 5.0 / view_zoom, true)
 
 
 func _draw_stops() -> void:
 	for i in range(stops.size()):
 		var pos: Vector2 = stops[i]["pos"]
-		draw_circle(pos, 9.0, Color("#fffdf8"))
-		draw_arc(pos, 9.0, 0.0, TAU, 24, Color("#303437"), 1.7, true)
+		var radius: float = 9.0 / view_zoom
+		draw_circle(pos, radius, Color("#fffdf8"))
+		draw_arc(pos, radius, 0.0, TAU, 24, Color("#303437"), 1.7 / view_zoom, true)
 		draw_string(
-			font, pos + Vector2(-10, 26), "%d" % (i + 1),
-			HORIZONTAL_ALIGNMENT_CENTER, 20, 11, Color("#34383b")
+			font, pos + Vector2(-10, 26) / view_zoom, "%d" % (i + 1),
+			HORIZONTAL_ALIGNMENT_CENTER, 20.0 / view_zoom, int(round(11.0 / view_zoom)), Color("#34383b")
 		)
 
 
@@ -576,8 +660,8 @@ func _draw_panel() -> void:
 	draw_line(Vector2(1000, 0), Vector2(1000, 720), Color("#c7c1b6"), 1.0)
 
 	draw_string(font, Vector2(PANEL_X, 34), "BUS MASTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("#292e31"))
-	draw_string(font, Vector2(PANEL_X, 58), "OSM MAP TEST", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#656a6d"))
-	draw_string(font, Vector2(PANEL_X, 88), AREA_NAME, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#3f4548"))
+	draw_string(font, Vector2(PANEL_X, 58), "OSM MAP TEST  v0.2.1", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#656a6d"))
+	draw_string(font, Vector2(PANEL_X, 88), AREA_NAME, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#3f4548"))
 
 	var buttons: Array[Rect2] = _buttons()
 	for i in range(3):
@@ -586,18 +670,22 @@ func _draw_panel() -> void:
 	_button(buttons[3], "Place Stop", Color("#d6e2d3") if place_mode else Color("#dcd7ce"))
 	_button(buttons[4], "Clear Stops / Routes", Color("#dcd7ce"))
 	_button(buttons[5], "Reload OSM", Color("#dcd7ce"))
+	_button(buttons[6], "Zoom -", Color("#dcd7ce"))
+	_button(buttons[7], "Zoom +", Color("#dcd7ce"))
+	_button(buttons[8], "Reset View", Color("#dcd7ce"))
 
-	draw_string(font, Vector2(PANEL_X, 382), "Stops: %d / %d" % [stops.size(), MAX_STOPS], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#464b4e"))
-	draw_string(font, Vector2(PANEL_X, 410), "Road nodes: %d" % graph_positions.size(), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#666b6e"))
-	draw_string(font, Vector2(PANEL_X, 432), "Buildings: %d" % buildings.size(), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#666b6e"))
-	draw_string(font, Vector2(PANEL_X, 454), "POIs: %d" % pois.size(), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#666b6e"))
+	draw_string(font, Vector2(PANEL_X, 438), "Zoom: %d%%" % int(round(view_zoom * 100.0)), HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#464b4e"))
+	draw_string(font, Vector2(PANEL_X, 464), "Stops: %d / %d" % [stops.size(), MAX_STOPS], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#464b4e"))
+	draw_string(font, Vector2(PANEL_X, 488), "Road nodes: %d" % graph_positions.size(), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#666b6e"))
+	draw_string(font, Vector2(PANEL_X, 510), "Buildings: %d   POIs: %d" % [buildings.size(), pois.size()], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#666b6e"))
 
-	draw_string(font, Vector2(PANEL_X, 510), status_text, HORIZONTAL_ALIGNMENT_LEFT, 236, 13, Color("#53595c"))
+	draw_string(font, Vector2(PANEL_X, 552), status_text, HORIZONTAL_ALIGNMENT_LEFT, 236, 12, Color("#53595c"))
 
 	var source: String = "Source: cache" if loaded_from_cache else "Source: live OSM"
-	draw_string(font, Vector2(PANEL_X, 635), source, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#74787a"))
-	draw_string(font, Vector2(PANEL_X, 658), "© OpenStreetMap contributors", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#74787a"))
-	draw_string(font, Vector2(PANEL_X, 684), "S: place   1/2/3: route   R: clear", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#74787a"))
+	draw_string(font, Vector2(PANEL_X, 628), source, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#74787a"))
+	draw_string(font, Vector2(PANEL_X, 650), "© OpenStreetMap contributors", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#74787a"))
+	draw_string(font, Vector2(PANEL_X, 674), "Wheel: zoom   MMB drag: pan", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#74787a"))
+	draw_string(font, Vector2(PANEL_X, 695), "S: stop   1/2/3: route   0: view", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#74787a"))
 
 
 func _button(rect: Rect2, label: String, fill: Color) -> void:
