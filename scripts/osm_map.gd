@@ -1,6 +1,6 @@
 extends Node2D
 
-const BUILD: String = "0.3.0-puzzle-map"
+const BUILD: String = "0.3.1-puzzle-map-fix"
 const OVERPASS_URL: String = "https://overpass-api.de/api/interpreter"
 const CACHE_PATH: String = "user://bus_master_gangnam_osm_v3.json"
 
@@ -375,6 +375,12 @@ func _road_display_level(kind: String) -> int:
 			return 0
 
 
+func _project(lat: float, lon: float) -> Vector2:
+	var x: float = (lon - WEST) / (EAST - WEST)
+	var y: float = 1.0 - ((lat - SOUTH) / (NORTH - SOUTH))
+	return MAP_RECT.position + Vector2(x * MAP_RECT.size.x, y * MAP_RECT.size.y)
+
+
 func _parse_building(element: Dictionary, tags: Dictionary) -> void:
 	var polygon: PackedVector2Array = _geometry_polygon(element)
 	if polygon.size() < 3:
@@ -439,7 +445,7 @@ func _parse_way_poi(element: Dictionary, tags: Dictionary) -> void:
 func _parse_node_poi(element: Dictionary, tags: Dictionary) -> void:
 	if not element.has("lat") or not element.has("lon"):
 		return
-	var pos := _project(float(element["lat"]), float(element["lon"]))
+	var pos: Vector2 = _project(float(element["lat"]), float(element["lon"]))
 	_append_poi_from_tags(pos, tags)
 
 
@@ -557,7 +563,7 @@ func _best_poi_position(
 	avoid: Array[Vector2],
 	reference: Vector2
 ) -> Vector2:
-	var best := Vector2(-1, -1)
+	var best: Vector2 = Vector2(-1, -1)
 	var best_score: float = -INF
 	for poi in pois:
 		if not kinds.has(String(poi.get("kind", ""))):
@@ -575,7 +581,7 @@ func _best_poi_position(
 
 
 func _fallback_position(normalized: Vector2) -> Vector2:
-	var target := MAP_RECT.position + Vector2(
+	var target: Vector2 = MAP_RECT.position + Vector2(
 		normalized.x * MAP_RECT.size.x,
 		normalized.y * MAP_RECT.size.y
 	)
@@ -664,11 +670,11 @@ func _simulation_tick() -> void:
 	demand_count = mini(demand_count, 4)
 
 	for _n in range(demand_count):
-		var origin_id: int = active_ids[randi() % active_ids.size()]
+		var origin_id: int = active_ids[int(randi() % active_ids.size())]
 		var destination_id: int = origin_id
 		var safety: int = 0
 		while destination_id == origin_id and safety < 10:
-			destination_id = active_ids[randi() % active_ids.size()]
+			destination_id = active_ids[int(randi() % active_ids.size())]
 			safety += 1
 
 		if _districts_connected(origin_id, destination_id):
@@ -1144,7 +1150,7 @@ func _draw_path_arrow(
 	if vector.length() < 0.1:
 		return
 	var unit: Vector2 = vector.normalized()
-	var normal := Vector2(-unit.y, unit.x)
+	var normal: Vector2 = Vector2(-unit.y, unit.x)
 	var tip: Vector2 = (a + b) * 0.5 + unit * (5.0 / view_zoom)
 	var base: Vector2 = tip - unit * (10.0 / view_zoom)
 	var wing: float = 4.0 / view_zoom
@@ -1281,7 +1287,7 @@ func _draw_panel() -> void:
 	draw_line(Vector2(1000, 0), Vector2(1000, 720), Color("#c7c1b6"), 1.0)
 
 	draw_string(font, Vector2(PANEL_X, 32), "BUS MASTER", HORIZONTAL_ALIGNMENT_LEFT, -1, 23, Color("#292e31"))
-	draw_string(font, Vector2(PANEL_X, 55), "PUZZLE MAP TEST  v0.3.0", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#656a6d"))
+	draw_string(font, Vector2(PANEL_X, 55), "PUZZLE MAP TEST  v0.3.1", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#656a6d"))
 	draw_string(font, Vector2(PANEL_X, 82), AREA_NAME, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#3f4548"))
 
 	var buttons: Array[Rect2] = _buttons()
