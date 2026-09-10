@@ -2,8 +2,8 @@
 setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
-set "ROOT=%~dp0"
-set "LOG_DIR=%ROOT%logs"
+for %%I in ("%~dp0.") do set "ROOT=%%~fI"
+set "LOG_DIR=%ROOT%\logs"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
 for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss"') do set "STAMP=%%I"
@@ -32,7 +32,7 @@ if defined GODOT_PATH (
 
 rem 2) Prefer console builds near the project or Downloads so stdout/stderr is available.
 if not defined GODOT_EXE (
-    for %%F in ("%ROOT%Godot*_console.exe" "%ROOT%tools\Godot*_console.exe" "%USERPROFILE%\Downloads\Godot*_console.exe") do (
+    for %%F in ("%ROOT%\Godot*_console.exe" "%ROOT%\tools\Godot*_console.exe" "%USERPROFILE%\Downloads\Godot*_console.exe") do (
         if exist "%%~fF" if not defined GODOT_EXE set "GODOT_EXE=%%~fF"
     )
 )
@@ -51,8 +51,8 @@ if not defined GODOT_EXE (
 rem 4) Common install/download locations.
 if not defined GODOT_EXE (
     for %%F in (
-        "%ROOT%Godot*.exe"
-        "%ROOT%tools\Godot*.exe"
+        "%ROOT%\Godot*.exe"
+        "%ROOT%\tools\Godot*.exe"
         "%USERPROFILE%\Downloads\Godot*.exe"
         "%ProgramFiles%\Godot\Godot*.exe"
         "%ProgramFiles(x86)%\Steam\steamapps\common\Godot Engine\*.exe"
