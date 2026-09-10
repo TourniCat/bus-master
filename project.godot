@@ -1,5 +1,5 @@
 [application]
-config/name="Flow Control Prototype"
+config/name="Grow Prototype"
 run/main_scene="res://main.tscn"
 
 [display]
@@ -15,4 +15,4 @@ driver/driver="Dummy"
 [rendering]
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-environment/defaults/default_clear_color=Color(0.94, 0.93, 0.88, 1)
+environment/defaults/default_clear_color=Color(0.09, 0.11, 0.09, 1)
