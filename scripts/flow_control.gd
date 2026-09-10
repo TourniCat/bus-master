@@ -1,13 +1,19 @@
 extends Node2D
 
-const BUILD: String = "0.1.0-flow-control"
+const BUILD: String = "0.2.0-adaptive-flow"
 const BOARD_RECT := Rect2(24, 44, 936, 652)
 const PANEL_RECT := Rect2(980, 0, 300, 720)
-const MAX_CONTROLS: int = 5
+
+const BASE_CONTROL_LIMIT: int = 5
 const FAIL_QUEUE: int = 8
 const FAIL_SECONDS: float = 5.0
 const BASE_SPAWN_INTERVAL: float = 0.82
-const MIN_SPAWN_INTERVAL: float = 0.26
+const MIN_SPAWN_INTERVAL: float = 0.38
+const AGENT_SPEED: float = 105.0
+const FULL_EDGE_COST_MULTIPLIER: float = 7.0
+const QUEUE_COST_PER_AGENT: float = 34.0
+const MAX_BYPASS_LENGTH: float = 430.0
+const UPGRADE_SCORES := [25, 65, 115]
 
 var font: Font
 var rng := RandomNumberGenerator.new()
@@ -18,16 +24,24 @@ var source_nodes: Array[int] = []
 var sink_nodes: Array[int] = []
 var agents: Array[Dictionary] = []
 var overload_time: Array[float] = []
+var safe_inflight_limits: Array[int] = []
 
 var running: bool = false
 var paused: bool = false
 var game_over: bool = false
 var elapsed: float = 0.0
 var score: int = 0
-var spawned: int = 0
+var spawn_sequence: int = 0
 var spawn_accumulator: float = 0.0
 var status_text: String = "Press START. Click roads to change their flow rule."
 var hovered_edge: int = -1
+var hovered_node: int = -1
+var control_limit: int = BASE_CONTROL_LIMIT
+
+var next_upgrade_index: int = 0
+var upgrade_pending: bool = false
+var upgrade_action: String = ""
+var bypass_first_node: int = -1
 
 var flow_colors: Array[Color] = [
 	Color("#e75d66"),
@@ -53,7 +67,7 @@ func _process(delta: float) -> void:
 		var interval: float = _spawn_interval()
 		while spawn_accumulator >= interval:
 			spawn_accumulator -= interval
-			_spawn_agent()
+			_try_spawn_agent()
 			interval = _spawn_interval()
 		_update_agents(delta)
 		_update_overload(delta)
@@ -67,6 +81,7 @@ func _generate_map() -> void:
 	sink_nodes.clear()
 	agents.clear()
 	overload_time.clear()
+	safe_inflight_limits.clear()
 
 	var left: float = BOARD_RECT.position.x + 88.0
 	var right: float = BOARD_RECT.end.x - 88.0
@@ -77,10 +92,10 @@ func _generate_map() -> void:
 
 	for row in range(3):
 		for col in range(4):
-			var jitter := Vector2.ZERO
+			var jitter: Vector2 = Vector2.ZERO
 			if col > 0 and col < 3:
 				jitter = Vector2(rng.randf_range(-34.0, 34.0), rng.randf_range(-40.0, 40.0))
-			var pos := Vector2(left + column_gap * float(col), top + row_gap * float(row)) + jitter
+			var pos: Vector2 = Vector2(left + column_gap * float(col), top + row_gap * float(row)) + jitter
 			nodes.append({"pos": pos})
 			overload_time.append(0.0)
 
@@ -91,20 +106,21 @@ func _generate_map() -> void:
 		_add_edge(base + 1, base + 2, 3)
 		_add_edge(base + 2, base + 3, 3)
 
-	# Two central cross-corridors create recurring head-on conflicts.
+	# Central cross-corridors create conflicts, but the generator adds enough
+	# alternate connections that no source/sink pair depends on one bridge edge.
 	_add_edge(1, 5, 2)
 	_add_edge(5, 9, 2)
 	_add_edge(2, 6, 2)
 	_add_edge(6, 10, 2)
 
-	# Add two procedural shortcuts from a curated motif set.
-	var shortcuts: Array[Array] = [
+	var shortcut_pool: Array[Array] = [
 		[0, 5], [4, 1], [4, 9], [8, 5],
-		[3, 6], [7, 2], [7, 10], [11, 6]
+		[3, 6], [7, 2], [7, 10], [11, 6],
+		[1, 6], [5, 10]
 	]
-	shortcuts.shuffle()
+	shortcut_pool.shuffle()
 	for i in range(2):
-		_add_edge(int(shortcuts[i][0]), int(shortcuts[i][1]), 2)
+		_add_edge(int(shortcut_pool[i][0]), int(shortcut_pool[i][1]), 2)
 
 	source_nodes = [0, 4, 8]
 	var right_nodes: Array[int] = [3, 7, 11]
@@ -113,13 +129,23 @@ func _generate_map() -> void:
 		right_nodes = [7, 11, 3]
 	sink_nodes = right_nodes
 
-	_reset_run_state(false)
-	status_text = "Press START. Each color must reach its matching destination."
-	print("[FLOW_CONTROL] MAP sinks=%s edges=%d" % [str(sink_nodes), edges.size()])
+	# Solvability guard: keep adding curated shortcuts until every color has
+	# an alternate path if any edge on its shortest route is removed.
+	for i in range(2, shortcut_pool.size()):
+		if _all_pairs_resilient():
+			break
+		_add_edge(int(shortcut_pool[i][0]), int(shortcut_pool[i][1]), 2)
+
+	_recalculate_safe_limits()
+	_reset_run_state(false, false)
+	status_text = "Press START. The map has alternate routes; make the flow use them."
+	print("[FLOW_CONTROL] MAP sinks=%s edges=%d resilient=%s safe=%s" % [
+		str(sink_nodes), edges.size(), str(_all_pairs_resilient()), str(safe_inflight_limits)
+	])
 
 
-func _add_edge(a: int, b: int, capacity: int) -> void:
-	if _edge_between(a, b) >= 0:
+func _add_edge(a: int, b: int, capacity: int, is_bypass: bool = false) -> void:
+	if a == b or _edge_between(a, b) >= 0:
 		return
 	var a_pos: Vector2 = nodes[a]["pos"]
 	var b_pos: Vector2 = nodes[b]["pos"]
@@ -128,8 +154,10 @@ func _add_edge(a: int, b: int, capacity: int) -> void:
 		"b": b,
 		"mode": 0,
 		"capacity": capacity,
+		"base_capacity": capacity,
 		"load": 0,
-		"length": a_pos.distance_to(b_pos)
+		"length": a_pos.distance_to(b_pos),
+		"is_bypass": is_bypass
 	})
 
 
@@ -141,8 +169,21 @@ func _edge_between(a: int, b: int) -> int:
 	return -1
 
 
-func _reset_run_state(reset_edge_modes: bool = true) -> void:
+func _restore_infrastructure() -> void:
+	for i in range(edges.size() - 1, -1, -1):
+		if bool(edges[i].get("is_bypass", false)):
+			edges.remove_at(i)
+		else:
+			edges[i]["capacity"] = int(edges[i]["base_capacity"])
+			edges[i]["load"] = 0
+	control_limit = BASE_CONTROL_LIMIT
+	_recalculate_safe_limits()
+
+
+func _reset_run_state(reset_edge_modes: bool = true, reset_infrastructure: bool = true) -> void:
 	agents.clear()
+	if reset_infrastructure:
+		_restore_infrastructure()
 	for i in range(edges.size()):
 		edges[i]["load"] = 0
 		if reset_edge_modes:
@@ -154,17 +195,29 @@ func _reset_run_state(reset_edge_modes: bool = true) -> void:
 	game_over = false
 	elapsed = 0.0
 	score = 0
-	spawned = 0
+	spawn_sequence = 0
 	spawn_accumulator = 0.0
+	next_upgrade_index = 0
+	upgrade_pending = false
+	upgrade_action = ""
+	bypass_first_node = -1
 
 
 func _spawn_interval() -> float:
-	return maxf(MIN_SPAWN_INTERVAL, BASE_SPAWN_INTERVAL - elapsed * 0.0065)
+	# Pressure grows, but never beyond the tested safe envelope. If the network
+	# is efficient, agents clear fast and the high rate is sustainable. If it is
+	# badly configured, the inflight guard below prevents mathematically endless
+	# injection while still allowing a player-created queue to fail.
+	return maxf(MIN_SPAWN_INTERVAL, BASE_SPAWN_INTERVAL - elapsed * 0.0042)
 
 
-func _spawn_agent() -> void:
-	var color_index: int = spawned % 3
-	spawned += 1
+func _try_spawn_agent() -> void:
+	var color_index: int = spawn_sequence % 3
+	spawn_sequence += 1
+	if color_index >= safe_inflight_limits.size():
+		return
+	if _inflight_for_color(color_index) >= safe_inflight_limits[color_index]:
+		return
 	var source: int = source_nodes[color_index]
 	var target: int = sink_nodes[color_index]
 	agents.append({
@@ -177,6 +230,14 @@ func _spawn_agent() -> void:
 	})
 
 
+func _inflight_for_color(color_index: int) -> int:
+	var count: int = 0
+	for agent in agents:
+		if int(agent["color"]) == color_index:
+			count += 1
+	return count
+
+
 func _update_agents(delta: float) -> void:
 	for i in range(agents.size() - 1, -1, -1):
 		var agent: Dictionary = agents[i]
@@ -184,8 +245,7 @@ func _update_agents(delta: float) -> void:
 		if edge_id >= 0:
 			var edge: Dictionary = edges[edge_id]
 			var length: float = maxf(1.0, float(edge["length"]))
-			var speed: float = 105.0
-			agent["progress"] = float(agent["progress"]) + (speed / length) * delta
+			agent["progress"] = float(agent["progress"]) + (AGENT_SPEED / length) * delta
 			if float(agent["progress"]) >= 1.0:
 				edges[edge_id]["load"] = maxi(0, int(edges[edge_id]["load"]) - 1)
 				agent["node"] = int(agent["to"])
@@ -195,6 +255,7 @@ func _update_agents(delta: float) -> void:
 				if int(agent["node"]) == int(agent["target"]):
 					score += 1
 					agents.remove_at(i)
+					_check_upgrade_trigger()
 					continue
 		else:
 			var current: int = int(agent["node"])
@@ -217,6 +278,7 @@ func _next_hop(start: int, target: int) -> int:
 	var dist: Array[float] = []
 	var prev: Array[int] = []
 	var used: Array[bool] = []
+	var waiting: Array[int] = _waiting_counts()
 	for _i in range(count):
 		dist.append(INF)
 		prev.append(-1)
@@ -241,9 +303,14 @@ func _next_hop(start: int, target: int) -> int:
 			if neighbor < 0:
 				continue
 			var edge: Dictionary = edges[edge_id]
-			var load_ratio: float = float(edge["load"]) / float(maxi(1, int(edge["capacity"])))
-			var cost: float = float(edge["length"]) * (1.0 + load_ratio * 1.7)
-			var candidate: float = dist[current] + cost
+			var capacity: int = maxi(1, int(edge["capacity"]))
+			var load: int = int(edge["load"])
+			var load_ratio: float = float(load) / float(capacity)
+			var congestion_multiplier: float = 1.0 + load_ratio * load_ratio * 2.6
+			if load >= capacity:
+				congestion_multiplier *= FULL_EDGE_COST_MULTIPLIER
+			var queue_penalty: float = float(waiting[neighbor]) * QUEUE_COST_PER_AGENT
+			var candidate: float = dist[current] + float(edge["length"]) * congestion_multiplier + queue_penalty
 			if candidate < dist[neighbor]:
 				dist[neighbor] = candidate
 				prev[neighbor] = current
@@ -288,7 +355,10 @@ func _update_overload(delta: float) -> void:
 		if overload_time[i] >= FAIL_SECONDS:
 			game_over = true
 			running = false
-			status_text = "FLOW COLLAPSED — press TRY AGAIN or generate a new map."
+			paused = false
+			upgrade_pending = false
+			upgrade_action = ""
+			status_text = "FLOW COLLAPSED — a queue stayed blocked too long."
 			print("[FLOW_CONTROL] GAME_OVER score=%d time=%.1f node=%d" % [score, elapsed, i])
 			return
 
@@ -312,13 +382,164 @@ func _controls_used() -> int:
 	return count
 
 
+func _shortest_path_edges(start: int, target: int, blocked_edge: int = -1) -> Array[int]:
+	var frontier: Array[int] = [start]
+	var visited: Dictionary = {start: true}
+	var prev_node: Array[int] = []
+	var prev_edge: Array[int] = []
+	for _i in range(nodes.size()):
+		prev_node.append(-1)
+		prev_edge.append(-1)
+
+	while not frontier.is_empty():
+		var current: int = frontier.pop_front()
+		if current == target:
+			break
+		for edge_id in range(edges.size()):
+			if edge_id == blocked_edge:
+				continue
+			var other: int = _other_node(edge_id, current)
+			if other < 0 or visited.has(other):
+				continue
+			visited[other] = true
+			prev_node[other] = current
+			prev_edge[other] = edge_id
+			frontier.append(other)
+
+	if start != target and prev_node[target] < 0:
+		return []
+	var result: Array[int] = []
+	var cursor: int = target
+	while cursor != start:
+		var edge_id: int = prev_edge[cursor]
+		if edge_id < 0:
+			return []
+		result.push_front(edge_id)
+		cursor = prev_node[cursor]
+	return result
+
+
+func _other_node(edge_id: int, node_id: int) -> int:
+	var edge: Dictionary = edges[edge_id]
+	var a: int = int(edge["a"])
+	var b: int = int(edge["b"])
+	if node_id == a:
+		return b
+	if node_id == b:
+		return a
+	return -1
+
+
+func _pair_resilient(start: int, target: int) -> bool:
+	var first_path: Array[int] = _shortest_path_edges(start, target)
+	if first_path.is_empty():
+		return false
+	for edge_id in first_path:
+		if _shortest_path_edges(start, target, edge_id).is_empty():
+			return false
+	return true
+
+
+func _all_pairs_resilient() -> bool:
+	if source_nodes.size() < 3 or sink_nodes.size() < 3:
+		return false
+	for i in range(3):
+		if not _pair_resilient(source_nodes[i], sink_nodes[i]):
+			return false
+	return true
+
+
+func _recalculate_safe_limits() -> void:
+	safe_inflight_limits.clear()
+	for color_index in range(3):
+		var path: Array[int] = _shortest_path_edges(source_nodes[color_index], sink_nodes[color_index])
+		var path_capacity: int = 0
+		for edge_id in path:
+			path_capacity += int(edges[edge_id]["capacity"])
+		# Enough pressure to lose when flow is mismanaged, but bounded so the
+		# generator cannot simply out-spawn the physical graph forever.
+		var limit: int = clampi(path_capacity + 4, 10, 15)
+		safe_inflight_limits.append(limit)
+
+
+func _check_upgrade_trigger() -> void:
+	if upgrade_pending or next_upgrade_index >= UPGRADE_SCORES.size():
+		return
+	var threshold: int = int(UPGRADE_SCORES[next_upgrade_index])
+	if score < threshold:
+		return
+	upgrade_pending = true
+	upgrade_action = ""
+	bypass_first_node = -1
+	paused = true
+	next_upgrade_index += 1
+	status_text = "INFRASTRUCTURE — choose WIDEN, BYPASS, or +CONTROL."
+	print("[FLOW_CONTROL] UPGRADE score=%d" % score)
+
+
+func _choose_upgrade(kind: String) -> void:
+	if not upgrade_pending:
+		return
+	if kind == "control":
+		control_limit += 1
+		_finish_upgrade("Control limit increased to %d." % control_limit)
+		return
+	upgrade_action = kind
+	bypass_first_node = -1
+	if kind == "widen":
+		status_text = "WIDEN — click one road to add +1 capacity."
+	elif kind == "bypass":
+		status_text = "BYPASS — click two junctions to connect them."
+
+
+func _apply_widen(edge_id: int) -> void:
+	if edge_id < 0 or edge_id >= edges.size():
+		return
+	edges[edge_id]["capacity"] = int(edges[edge_id]["capacity"]) + 1
+	_recalculate_safe_limits()
+	_finish_upgrade("Road widened. Capacity +1; flow resumed.")
+
+
+func _handle_bypass_click(node_id: int) -> void:
+	if node_id < 0:
+		status_text = "BYPASS — click a junction node, not a road."
+		return
+	if bypass_first_node < 0:
+		bypass_first_node = node_id
+		status_text = "BYPASS — now click the second junction."
+		return
+	if node_id == bypass_first_node:
+		status_text = "Choose a different second junction."
+		return
+	if _edge_between(bypass_first_node, node_id) >= 0:
+		status_text = "Those junctions are already connected. Choose another."
+		return
+	var a: Vector2 = nodes[bypass_first_node]["pos"]
+	var b: Vector2 = nodes[node_id]["pos"]
+	if a.distance_to(b) > MAX_BYPASS_LENGTH:
+		status_text = "Bypass too long. Choose a closer junction."
+		return
+	_add_edge(bypass_first_node, node_id, 2, true)
+	_recalculate_safe_limits()
+	_finish_upgrade("New bypass opened. Flow resumed.")
+
+
+func _finish_upgrade(message: String) -> void:
+	upgrade_pending = false
+	upgrade_action = ""
+	bypass_first_node = -1
+	paused = false
+	status_text = message
+	print("[FLOW_CONTROL] UPGRADE_APPLIED %s" % message)
+
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_SPACE:
 				_toggle_start_pause()
 			KEY_R:
-				_reset_run_state(true)
+				_reset_run_state(true, true)
 				status_text = "Reset. Press START."
 			KEY_N:
 				_generate_map()
@@ -327,6 +548,7 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		var motion: InputEventMouseMotion = event
 		hovered_edge = _find_edge_at(motion.position)
+		hovered_node = _find_node_at(motion.position)
 		queue_redraw()
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -340,30 +562,54 @@ func _handle_click(pos: Vector2) -> void:
 		_toggle_start_pause()
 		return
 	if buttons[1].has_point(pos):
-		_reset_run_state(true)
-		status_text = "Reset. All roads are bidirectional again."
+		_reset_run_state(true, true)
+		status_text = "Reset. Roads and infrastructure restored."
 		return
 	if buttons[2].has_point(pos):
 		_generate_map()
 		status_text = "New procedural map generated."
 		return
 
+	if upgrade_pending:
+		if buttons[3].has_point(pos):
+			_choose_upgrade("widen")
+			return
+		if buttons[4].has_point(pos):
+			_choose_upgrade("bypass")
+			return
+		if buttons[5].has_point(pos):
+			_choose_upgrade("control")
+			return
+
 	if not BOARD_RECT.has_point(pos):
 		return
+
+	if upgrade_pending and upgrade_action == "widen":
+		_apply_widen(_find_edge_at(pos))
+		return
+	if upgrade_pending and upgrade_action == "bypass":
+		_handle_bypass_click(_find_node_at(pos))
+		return
+	if upgrade_pending:
+		return
+
 	var edge_id: int = _find_edge_at(pos)
 	if edge_id >= 0:
 		_cycle_edge_mode(edge_id)
 
 
 func _toggle_start_pause() -> void:
+	if upgrade_pending:
+		status_text = "Choose an infrastructure upgrade first."
+		return
 	if game_over:
-		_reset_run_state(false)
-		status_text = "Fresh run. Controls preserved."
+		_reset_run_state(true, true)
+		status_text = "Fresh run. Press START."
 		return
 	if not running:
 		running = true
 		paused = false
-		status_text = "Running. Redirect flow before queues overload."
+		status_text = "Running. Full roads now push flow toward alternate paths."
 		print("[FLOW_CONTROL] RUN_START")
 	else:
 		paused = not paused
@@ -373,7 +619,7 @@ func _toggle_start_pause() -> void:
 func _cycle_edge_mode(edge_id: int) -> void:
 	var current: int = int(edges[edge_id]["mode"])
 	var next: int = (current + 1) % 4
-	if current == 0 and next != 0 and _controls_used() >= MAX_CONTROLS:
+	if current == 0 and next != 0 and _controls_used() >= control_limit:
 		status_text = "No control tokens left. Return another road to ↔ first."
 		return
 	edges[edge_id]["mode"] = next
@@ -396,6 +642,18 @@ func _find_edge_at(pos: Vector2) -> int:
 	return best
 
 
+func _find_node_at(pos: Vector2) -> int:
+	var best: int = -1
+	var best_distance: float = 18.0
+	for i in range(nodes.size()):
+		var node_pos: Vector2 = nodes[i]["pos"]
+		var distance: float = pos.distance_to(node_pos)
+		if distance < best_distance:
+			best_distance = distance
+			best = i
+	return best
+
+
 func _distance_to_segment(point: Vector2, a: Vector2, b: Vector2) -> float:
 	var ab: Vector2 = b - a
 	var length_sq: float = ab.length_squared()
@@ -409,7 +667,10 @@ func _buttons() -> Array[Rect2]:
 	return [
 		Rect2(1004, 118, 252, 46),
 		Rect2(1004, 180, 122, 38),
-		Rect2(1134, 180, 122, 38)
+		Rect2(1134, 180, 122, 38),
+		Rect2(1004, 238, 78, 38),
+		Rect2(1091, 238, 78, 38),
+		Rect2(1178, 238, 78, 38)
 	]
 
 
@@ -431,10 +692,10 @@ func _draw_edges() -> void:
 		var load: int = int(edge["load"])
 		var capacity: int = int(edge["capacity"])
 		var ratio: float = float(load) / float(maxi(1, capacity))
-		var width: float = 5.0 + ratio * 5.0
-		var color := Color("#c8c5be")
+		var width: float = 5.0 + ratio * 5.0 + float(capacity - int(edge["base_capacity"])) * 1.2
+		var color: Color = Color("#b7b29f") if bool(edge.get("is_bypass", false)) else Color("#c8c5be")
 		if i == hovered_edge:
-			color = Color("#9e9a91")
+			color = Color("#8f8a80")
 		draw_line(a, b, color, width, true)
 		draw_line(a, b, Color("#f8f7f2"), maxf(2.0, width - 3.0), true)
 		_draw_edge_rule(i, a, b)
@@ -453,7 +714,7 @@ func _draw_edge_rule(edge_id: int, a: Vector2, b: Vector2) -> void:
 	var start: Vector2 = a if mode == 1 else b
 	var finish: Vector2 = b if mode == 1 else a
 	var dir: Vector2 = (finish - start).normalized()
-	var normal := Vector2(-dir.y, dir.x)
+	var normal: Vector2 = Vector2(-dir.y, dir.x)
 	var tip: Vector2 = mid + dir * 8.0
 	var base: Vector2 = mid - dir * 7.0
 	var arrow := PackedVector2Array([base + normal * 5.0, tip, base - normal * 5.0])
@@ -469,8 +730,11 @@ func _draw_nodes() -> void:
 			var halo: float = 18.0 + minf(18.0, float(queue) * 1.8)
 			draw_circle(pos, halo, Color(0.78, 0.28, 0.25, 0.06 + minf(0.24, float(queue) * 0.02)))
 		if overload_time[i] > 0.0:
-			var ratio: float = clampf(overload_time[i] / FAIL_SECONDS, 0.0, 1.0)
-			draw_arc(pos, 23.0, -PI / 2.0, -PI / 2.0 + TAU * ratio, 28, Color("#c34f4f"), 4.0, true)
+			var danger_ratio: float = clampf(overload_time[i] / FAIL_SECONDS, 0.0, 1.0)
+			draw_arc(pos, 23.0, -PI / 2.0, -PI / 2.0 + TAU * danger_ratio, 28, Color("#c34f4f"), 4.0, true)
+		if upgrade_pending and upgrade_action == "bypass" and (i == hovered_node or i == bypass_first_node):
+			draw_circle(pos, 15.0, Color(0.36, 0.49, 0.68, 0.16))
+			draw_arc(pos, 15.0, 0.0, TAU, 24, Color("#5d789e"), 2.5, true)
 
 		draw_circle(pos, 7.0, Color("#565b5d"))
 		if queue > 0:
@@ -513,31 +777,48 @@ func _draw_panel() -> void:
 	draw_rect(PANEL_RECT, Color("#e9e6dd"), true)
 	draw_line(Vector2(980, 0), Vector2(980, 720), Color("#c5c0b5"), 1.0)
 	draw_string(font, Vector2(1004, 34), "FLOW CONTROL", HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("#292e31"))
-	draw_string(font, Vector2(1004, 58), "procedural prototype  v0.1", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#666b6d"))
+	draw_string(font, Vector2(1004, 58), "adaptive routing  v0.2", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#666b6d"))
 
 	var buttons: Array[Rect2] = _buttons()
 	_button(buttons[0], _start_label(), Color("#c7d9bf") if not game_over else Color("#dfc0b8"))
 	_button(buttons[1], "RESET", Color("#d8d4cb"))
 	_button(buttons[2], "NEW MAP", Color("#d8d4cb"))
 
-	draw_string(font, Vector2(1004, 260), "Score", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#696d6f"))
-	draw_string(font, Vector2(1004, 294), str(score), HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color("#303538"))
-	draw_string(font, Vector2(1004, 330), "Time  %02d:%02d" % [int(elapsed) / 60, int(elapsed) % 60], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#555a5c"))
-	draw_string(font, Vector2(1004, 354), "Controls  %d / %d" % [_controls_used(), MAX_CONTROLS], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#555a5c"))
-	draw_string(font, Vector2(1004, 378), "Flow rate  %.1f / sec" % (1.0 / _spawn_interval()), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#555a5c"))
+	if upgrade_pending:
+		draw_string(font, Vector2(1004, 232), "INFRASTRUCTURE", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#5b6062"))
+		_button(buttons[3], "WIDEN", Color("#cfd9c8") if upgrade_action == "widen" else Color("#ddd8cf"))
+		_button(buttons[4], "BYPASS", Color("#cbd6df") if upgrade_action == "bypass" else Color("#ddd8cf"))
+		_button(buttons[5], "+CTRL", Color("#ddd8cf"))
 
-	draw_string(font, Vector2(1004, 430), "CLICK A ROAD", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#363b3d"))
-	draw_string(font, Vector2(1004, 454), "↔  →  ←  ×", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("#363b3d"))
-	draw_string(font, Vector2(1004, 480), "Cycle its flow rule.", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#656a6c"))
-	draw_string(font, Vector2(1004, 502), "Directional roads stop head-on", HORIZONTAL_ALIGNMENT_LEFT, 252, 11, Color("#656a6c"))
-	draw_string(font, Vector2(1004, 520), "traffic but may create detours.", HORIZONTAL_ALIGNMENT_LEFT, 252, 11, Color("#656a6c"))
+	draw_string(font, Vector2(1004, 314), "Score", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#696d6f"))
+	draw_string(font, Vector2(1004, 348), str(score), HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color("#303538"))
+	draw_string(font, Vector2(1004, 384), "Time  %02d:%02d" % [int(elapsed) / 60, int(elapsed) % 60], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#555a5c"))
+	draw_string(font, Vector2(1004, 408), "Controls  %d / %d" % [_controls_used(), control_limit], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#555a5c"))
+	draw_string(font, Vector2(1004, 432), "Flow rate  %.1f / sec" % (1.0 / _spawn_interval()), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#555a5c"))
 
-	draw_string(font, Vector2(1004, 568), status_text, HORIZONTAL_ALIGNMENT_LEFT, 252, 12, Color("#464b4d"))
-	draw_string(font, Vector2(1004, 650), "Space: start/pause", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#777b7d"))
-	draw_string(font, Vector2(1004, 670), "R: reset   N: new map", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#777b7d"))
+	draw_string(font, Vector2(1004, 474), "CLICK A ROAD", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#363b3d"))
+	draw_string(font, Vector2(1004, 498), "↔  →  ←  ×", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("#363b3d"))
+	draw_string(font, Vector2(1004, 526), "Flow replans at every junction.", HORIZONTAL_ALIGNMENT_LEFT, 252, 11, Color("#656a6c"))
+	draw_string(font, Vector2(1004, 544), "Full roads and queues are avoided.", HORIZONTAL_ALIGNMENT_LEFT, 252, 11, Color("#656a6c"))
+
+	draw_string(font, Vector2(1004, 582), status_text, HORIZONTAL_ALIGNMENT_LEFT, 252, 12, Color("#464b4d"))
+	var next_upgrade_text: String = _next_upgrade_text()
+	draw_string(font, Vector2(1004, 624), next_upgrade_text, HORIZONTAL_ALIGNMENT_LEFT, 252, 10, Color("#74787a"))
+	draw_string(font, Vector2(1004, 660), "Space: start/pause", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#777b7d"))
+	draw_string(font, Vector2(1004, 680), "R: reset   N: new map", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#777b7d"))
+
+
+func _next_upgrade_text() -> String:
+	if upgrade_pending:
+		return "Flow paused until upgrade is applied."
+	if next_upgrade_index < UPGRADE_SCORES.size():
+		return "Next infrastructure at %d score" % int(UPGRADE_SCORES[next_upgrade_index])
+	return "All infrastructure rewards claimed"
 
 
 func _start_label() -> String:
+	if upgrade_pending:
+		return "UPGRADE"
 	if game_over:
 		return "TRY AGAIN"
 	if not running:
@@ -550,7 +831,7 @@ func _start_label() -> String:
 func _button(rect: Rect2, label: String, fill: Color) -> void:
 	draw_rect(rect, fill, true)
 	draw_rect(rect, Color("#77736b"), false, 1.0)
-	draw_string(font, rect.position + Vector2(8, 28), label, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 16.0, 13, Color("#303437"))
+	draw_string(font, rect.position + Vector2(6, 27), label, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 12.0, 12, Color("#303437"))
 
 
 func _mode_label(mode: int) -> String:
