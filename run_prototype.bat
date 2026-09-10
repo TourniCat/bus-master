@@ -12,10 +12,10 @@ if not defined STAMP set "STAMP=unknown"
 set "LATEST=%LOG_DIR%\prototype_latest.log"
 set "ARCHIVE=%LOG_DIR%\prototype_%STAMP%.log"
 set "ENGINE_LOG=%LOG_DIR%\godot_engine_latest.log"
-set "CONSOLE_LOG=%TEMP%\flow_control_console_%STAMP%.log"
+set "CONSOLE_LOG=%TEMP%\grow_console_%STAMP%.log"
 
 > "%LATEST%" echo ============================================================
->>"%LATEST%" echo Flow Control Prototype Launcher
+>>"%LATEST%" echo Grow Prototype Launcher
 >>"%LATEST%" echo Started: %DATE% %TIME%
 >>"%LATEST%" echo Project: %ROOT%
 >>"%LATEST%" echo ============================================================
@@ -24,13 +24,10 @@ if exist "%ENGINE_LOG%" del /q "%ENGINE_LOG%" >nul 2>nul
 if exist "%CONSOLE_LOG%" del /q "%CONSOLE_LOG%" >nul 2>nul
 
 set "GODOT_EXE="
-
-rem Explicit GODOT_PATH wins.
 if defined GODOT_PATH (
     if exist "%GODOT_PATH%" set "GODOT_EXE=%GODOT_PATH%"
 )
 
-rem Prefer normal GUI executables. --log-file still captures script/engine errors.
 if not defined GODOT_EXE (
     for %%C in (godot4.exe godot.exe godot4 godot) do (
         if not defined GODOT_EXE (
@@ -59,9 +56,9 @@ if not "%VERSION_EXIT%"=="0" goto :launch_failed
 >>"%LATEST%" echo.
 >>"%LATEST%" echo --- Prototype output ---
 
-echo [Flow Control] Launching prototype...
-echo [Flow Control] Godot: "%GODOT_EXE%"
-echo [Flow Control] Latest log: "%LATEST%"
+echo [Grow] Launching prototype...
+echo [Grow] Godot: "%GODOT_EXE%"
+echo [Grow] Latest log: "%LATEST%"
 echo.
 
 start "" /wait "%GODOT_EXE%" --path "%ROOT%" --audio-driver Dummy --verbose --log-file "%ENGINE_LOG%" >"%CONSOLE_LOG%" 2>&1
@@ -83,9 +80,9 @@ copy /y "%LATEST%" "%ARCHIVE%" >nul
 if exist "%CONSOLE_LOG%" del /q "%CONSOLE_LOG%" >nul 2>nul
 
 echo.
-echo [Flow Control] Prototype closed. Exit code: %EXIT_CODE%
-echo [Flow Control] Latest log: "%LATEST%"
-echo [Flow Control] Archived log: "%ARCHIVE%"
+echo [Grow] Prototype closed. Exit code: %EXIT_CODE%
+echo [Grow] Latest log: "%LATEST%"
+echo [Grow] Archived log: "%ARCHIVE%"
 echo.
 echo If something broke, run copy_latest_log.bat and paste the result into ChatGPT.
 pause
@@ -103,7 +100,7 @@ exit /b 0
 set "EXIT_CODE=%VERSION_EXIT%"
 >>"%LATEST%" echo ERROR: Selected Godot executable failed its --version check. Exit code: %VERSION_EXIT%
 copy /y "%LATEST%" "%ARCHIVE%" >nul
-echo [Flow Control] Selected Godot executable could not start.
+echo [Grow] Selected Godot executable could not start.
 echo See "%LATEST%"
 pause
 exit /b %EXIT_CODE%
@@ -111,7 +108,7 @@ exit /b %EXIT_CODE%
 :godot_not_found
 >>"%LATEST%" echo ERROR: Godot executable was not found.
 copy /y "%LATEST%" "%ARCHIVE%" >nul
-echo [Flow Control] Godot executable was not found.
+echo [Grow] Godot executable was not found.
 echo See "%LATEST%"
 echo.
 echo Example:
