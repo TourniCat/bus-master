@@ -78,6 +78,10 @@ jobs:
           p.write_text(s, encoding='utf-8')
           assert 'Result.retry()' not in p.read_text(encoding='utf-8')
           PY
+      - name: Enable AndroidX
+        shell: bash
+        run: |
+          printf '\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n' >> /tmp/androidsrc/gradle.properties
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
