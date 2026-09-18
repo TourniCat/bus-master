@@ -36,6 +36,16 @@ jobs:
           Write-Host "source sha256=$hash"
           if($hash -ne "73cbdf34d1b7afeb557ea901b47a6e85e606aad1d3910383a5b6ff6a8cdc400e"){ Write-Warning "source archive checksum differs; attempting structural extraction/build" }
           Expand-Archive "$env:RUNNER_TEMP\windows-v2-source.zip" "$env:RUNNER_TEMP\source"
+      - name: Patch known source transport fixes
+        shell: pwsh
+        run: |
+          $r = "$env:RUNNER_TEMP\source\windows\RemoteSyncClient.cs"
+          $s = Get-Content $r -Raw
+          if(-not $s.StartsWith('using System.Net.Http;')) { Set-Content -Path $r -Value ('using System.Net.Http; ' + $s) -NoNewline }
+          $r = "$env:RUNNER_TEMP\source\windows\LanSyncServer.cs"
+          $s = Get-Content $r -Raw
+          if(-not $s.StartsWith('using System.IO;')) { Set-Content -Path $r -Value ('using System.IO; ' + $s) -NoNewline }
+
       - name: Restore
         shell: pwsh
         working-directory: ${{ runner.temp }}\source\windows
