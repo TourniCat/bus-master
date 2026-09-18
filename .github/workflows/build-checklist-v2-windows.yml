@@ -1,0 +1,48 @@
+name: Build Checklist V2 Windows
+
+on:
+  push:
+    branches:
+      - chatgpt/checklist-v2-build
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Reconstruct source
+        shell: pwsh
+        run: |
+          $b64 = (Get-ChildItem checklist-v2/windows/part*.txt | Sort-Object Name | ForEach-Object { Get-Content $_ -Raw }) -join ''
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\windows-v2-source.zip",[Convert]::FromBase64String($b64))
+          $hash=(Get-FileHash "$env:RUNNER_TEMP\windows-v2-source.zip" -Algorithm SHA256).Hash.ToLower()
+          Write-Host "source sha256=$hash"
+          if($hash -ne "73cbdf34d1b7afeb557ea901b47a6e85e606aad1d3910383a5b6ff6a8cdc400e"){ throw "source archive checksum mismatch" }
+          Expand-Archive "$env:RUNNER_TEMP\windows-v2-source.zip" "$env:RUNNER_TEMP\source"
+      - name: Restore
+        shell: pwsh
+        working-directory: ${{ runner.temp }}\source\windows
+        run: dotnet restore
+      - name: Build
+        shell: pwsh
+        working-directory: ${{ runner.temp }}\source\windows
+        run: dotnet build -c Release --no-restore
+      - name: Publish x64
+        shell: pwsh
+        working-directory: ${{ runner.temp }}\source\windows
+        run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:DebugType=None -o "$env:RUNNER_TEMP\publish"
+      - name: Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "$env:RUNNER_TEMP\publish\*" -DestinationPath "$env:RUNNER_TEMP\AbsoluteChecklist-Windows-v2.0.0-win-x64.zip"
+          Get-FileHash "$env:RUNNER_TEMP\AbsoluteChecklist-Windows-v2.0.0-win-x64.zip" -Algorithm SHA256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: checklist-v2-windows
+          path: ${{ runner.temp }}\AbsoluteChecklist-Windows-v2.0.0-win-x64.zip
+          retention-days: 7
