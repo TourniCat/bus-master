@@ -58,14 +58,14 @@ jobs:
           PY
           node --check /tmp/windowssrc/windows/web/core.js
           node --check /tmp/windowssrc/windows/web/app.js
-          rm -rf /tmp/androidsrc/android/app/src/main/assets/web
-          mkdir -p /tmp/androidsrc/android/app/src/main/assets/web
-          cp -a /tmp/windowssrc/windows/web/. /tmp/androidsrc/android/app/src/main/assets/web/
-          test -f /tmp/androidsrc/android/app/src/main/assets/web/index.html
-          test -f /tmp/androidsrc/android/app/src/main/assets/web/core.js
-          node --check /tmp/androidsrc/android/app/src/main/assets/web/core.js
-          node --check /tmp/androidsrc/android/app/src/main/assets/web/app.js
-          test -f /tmp/androidsrc/android/app/src/main/java/com/absolute/checklist/MainActivity.java
+          rm -rf /tmp/androidsrc/app/src/main/assets/web
+          mkdir -p /tmp/androidsrc/app/src/main/assets/web
+          cp -a /tmp/windowssrc/windows/web/. /tmp/androidsrc/app/src/main/assets/web/
+          test -f /tmp/androidsrc/app/src/main/assets/web/index.html
+          test -f /tmp/androidsrc/app/src/main/assets/web/core.js
+          node --check /tmp/androidsrc/app/src/main/assets/web/core.js
+          node --check /tmp/androidsrc/app/src/main/assets/web/app.js
+          test -f /tmp/androidsrc/app/src/main/java/com/absolute/checklist/MainActivity.java
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -82,11 +82,11 @@ jobs:
           curl -fsSL --retry 3 -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
           unzip -q /tmp/gradle.zip -d /tmp
       - name: Build native compile smoke
-        working-directory: /tmp/androidsrc/android
+        working-directory: /tmp/androidsrc
         shell: bash
         run: /tmp/gradle-8.10.2/bin/gradle :app:compileDebugJavaWithJavac --stacktrace --no-daemon
       - name: Build release APK
-        working-directory: /tmp/androidsrc/android
+        working-directory: /tmp/androidsrc
         shell: bash
         run: /tmp/gradle-8.10.2/bin/gradle :app:assembleRelease --stacktrace --no-daemon
       - name: Package
@@ -94,7 +94,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/out
-          cp /tmp/androidsrc/android/app/build/outputs/apk/release/app-release-unsigned.apk /tmp/out/AbsoluteChecklist-v2.0.0-unsigned.apk
+          cp /tmp/androidsrc/app/build/outputs/apk/release/app-release-unsigned.apk /tmp/out/AbsoluteChecklist-v2.0.0-unsigned.apk
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" /tmp/out/apksigner.jar
           sha256sum /tmp/out/*
       - uses: actions/upload-artifact@v4
