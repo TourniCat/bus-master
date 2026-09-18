@@ -1,0 +1,72 @@
+name: Build Absolute Dev Checklist APK
+
+on:
+  push:
+    branches:
+      - chatgpt/checklist-apk-build
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Reconstruct source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat checklist-build/parts/part*.txt > /tmp/absolute-checklist-source.b64
+          base64 --decode /tmp/absolute-checklist-source.b64 > /tmp/absolute-checklist-source.zip
+          unzip -q /tmp/absolute-checklist-source.zip -d /tmp/absolute-checklist-source
+          test -f /tmp/absolute-checklist-source/absolute_dev_checklist_android/settings.gradle
+          test -f /tmp/absolute-checklist-source/absolute_dev_checklist_android/app/src/main/java/com/absolute/checklist/MainActivity.java
+
+      - name: Prepare Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          echo "sdkmanager=$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Download Gradle 8.10.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          /tmp/gradle-8.10.2/bin/gradle --version
+
+      - name: Build debug APK
+        working-directory: /tmp/absolute-checklist-source/absolute_dev_checklist_android
+        shell: bash
+        run: /tmp/gradle-8.10.2/bin/gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build-output
+          cp /tmp/absolute-checklist-source/absolute_dev_checklist_android/app/build/outputs/apk/debug/app-debug.apk build-output/AbsoluteDevChecklist-v1.0.apk
+          sha256sum build-output/AbsoluteDevChecklist-v1.0.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: absolute-dev-checklist-apk
+          path: build-output/AbsoluteDevChecklist-v1.0.apk
+          if-no-files-found: error
+          retention-days: 7
