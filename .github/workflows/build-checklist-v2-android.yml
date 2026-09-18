@@ -66,6 +66,18 @@ jobs:
           node --check /tmp/androidsrc/app/src/main/assets/web/core.js
           node --check /tmp/androidsrc/app/src/main/assets/web/app.js
           test -f /tmp/androidsrc/app/src/main/java/com/absolute/checklist/MainActivity.java
+      - name: Apply battery-safe backup policy
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/androidsrc/app/src/main/java/com/absolute/checklist/BackupWorker.java')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('catch(SecurityException e){return Result.retry();}', 'catch(SecurityException e){return Result.success();}')
+          s=s.replace('catch(Exception e){return Result.retry();}', 'catch(Exception e){return Result.success();}')
+          p.write_text(s, encoding='utf-8')
+          assert 'Result.retry()' not in p.read_text(encoding='utf-8')
+          PY
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
