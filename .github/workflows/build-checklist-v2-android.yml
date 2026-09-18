@@ -37,11 +37,19 @@ jobs:
           cat checklist-v2/windows/part04.txt checklist-v2/windows/part05.txt checklist-v2/windows/part06.txt checklist-v2/windows/part07.txt >> /tmp/windows.b64
           base64 --decode /tmp/windows.b64 > /tmp/windows.zip
           mkdir -p /tmp/windowssrc
-          unzip -q /tmp/windows.zip -d /tmp/windowssrc || true
           python3 - <<'PY'
-          import json
+          import json, zipfile
           from pathlib import Path
-          web=Path('/tmp/windowssrc/windows/web')
+          out=Path('/tmp/windowssrc')
+          with zipfile.ZipFile('/tmp/windows.zip') as z:
+              for info in z.infolist():
+                  if info.filename.endswith('/web/checklist-data.js'):
+                      continue
+                  try:
+                      z.extract(info, out)
+                  except zipfile.BadZipFile:
+                      raise
+          web=out/'windows'/'web'
           data=json.loads((web/'checklist.json').read_text(encoding='utf-8'))
           (web/'checklist-data.js').write_text(
               'window.INITIAL_CHECKLIST = '+json.dumps(data,ensure_ascii=False,separators=(',',':'))+';\n',
