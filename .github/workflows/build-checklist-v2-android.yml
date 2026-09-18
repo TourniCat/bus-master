@@ -81,6 +81,12 @@ jobs:
           t=q.read_text(encoding='utf-8')
           t=t.replace('public String appInfo(String ignored){JSONObject o=new JSONObject();try{o.put("deviceId",storage.getDeviceId()).put("deviceLabel",storage.getDeviceLabel()).put("version","2.0.0 Android");}catch(Exception ignored){}',
                       'public String appInfo(String ignored){JSONObject o=new JSONObject();try{o.put("deviceId",storage.getDeviceId()).put("deviceLabel",storage.getDeviceLabel()).put("version","2.0.0 Android");}catch(Exception ex){}')
+          t=t.replace('private WebView web; private FrameLayout root; private boolean unlocked=false; private boolean pageReady=false; private String exportPending="";',
+                      'private WebView web; private FrameLayout root; private boolean unlocked=false; private volatile boolean pageReady=false; private final java.util.List<String[]> pendingStates=java.util.Collections.synchronizedList(new java.util.ArrayList<>()); private String exportPending="";')
+          t=t.replace('web.setWebViewClient(new WebViewClient(){@Override public void onPageFinished(WebView view,String url){pageReady=true;pushStatus(false,"","로컬");}});',
+                      'web.setWebViewClient(new WebViewClient(){@Override public void onPageFinished(WebView view,String url){pageReady=true;synchronized(pendingStates){for(String[] x:pendingStates)eval("window.App&&App.receiveRemoteState("+JSONObject.quote(x[0])+","+JSONObject.quote(x[1])+")");pendingStates.clear();}pushStatus(false,"","로컬");}});')
+          t=t.replace('@Override public void deliverState(String state,String source){eval("window.App&&App.receiveRemoteState("+JSONObject.quote(state)+","+JSONObject.quote(source)+")");}',
+                      '@Override public void deliverState(String state,String source){if(pageReady)eval("window.App&&App.receiveRemoteState("+JSONObject.quote(state)+","+JSONObject.quote(source)+")");else pendingStates.add(new String[]{state,source});}')
           q.write_text(t, encoding='utf-8')
           lan=Path('/tmp/androidsrc/app/src/main/java/com/absolute/checklist/LanSyncClient.java')
           v=lan.read_text(encoding='utf-8')
