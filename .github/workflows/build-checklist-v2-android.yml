@@ -36,7 +36,20 @@ jobs:
           for f in $(find checklist-v2/windows-fix -name '03-*.txt' | sort); do cat "$f" >> /tmp/windows.b64; done
           cat checklist-v2/windows/part04.txt checklist-v2/windows/part05.txt checklist-v2/windows/part06.txt checklist-v2/windows/part07.txt >> /tmp/windows.b64
           base64 --decode /tmp/windows.b64 > /tmp/windows.zip
-          unzip -q /tmp/windows.zip -d /tmp/windowssrc
+          mkdir -p /tmp/windowssrc
+          unzip -q /tmp/windows.zip -d /tmp/windowssrc || true
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          web=Path('/tmp/windowssrc/windows/web')
+          data=json.loads((web/'checklist.json').read_text(encoding='utf-8'))
+          (web/'checklist-data.js').write_text(
+              'window.INITIAL_CHECKLIST = '+json.dumps(data,ensure_ascii=False,separators=(',',':'))+';\n',
+              encoding='utf-8'
+          )
+          PY
+          node --check /tmp/windowssrc/windows/web/core.js
+          node --check /tmp/windowssrc/windows/web/app.js
           rm -rf /tmp/androidsrc/android/app/src/main/assets/web
           mkdir -p /tmp/androidsrc/android/app/src/main/assets/web
           cp -a /tmp/windowssrc/windows/web/. /tmp/androidsrc/android/app/src/main/assets/web/
