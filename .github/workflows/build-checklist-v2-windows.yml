@@ -48,6 +48,7 @@ jobs:
       - name: Patch known source transport fixes
         shell: pwsh
         run: |
+          [IO.File]::WriteAllText("$env:RUNNER_TEMP\source\windows\GlobalUsings.cs", "global using System.IO;`nglobal using System.Net.Http;`n", [Text.UTF8Encoding]::new($false))
           $r = "$env:RUNNER_TEMP\source\windows\RemoteSyncClient.cs"
           $s = Get-Content $r -Raw
           if(-not $s.StartsWith('using System.Net.Http;')) { Set-Content -Path $r -Value ('using System.Net.Http; ' + $s) -NoNewline }
