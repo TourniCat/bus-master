@@ -55,6 +55,19 @@ jobs:
           $r = "$env:RUNNER_TEMP\source\windows\LanSyncServer.cs"
           $s = Get-Content $r -Raw
           if(-not $s.StartsWith('using System.IO;')) { Set-Content -Path $r -Value ('using System.IO; ' + $s) -NoNewline }
+          $r = "$env:RUNNER_TEMP\source\windows\MainWindow.xaml.cs"
+          $lines = [System.Collections.Generic.List[string]](Get-Content $r)
+          $navIndex = -1; $syncIndex = -1
+          for($i=0; $i -lt $lines.Count; $i++){
+            if($lines[$i].Contains('Browser.CoreWebView2.NavigationCompleted')) { $navIndex = $i }
+            if($lines[$i].Contains('sync=new SyncManager(storage)')) { $syncIndex = $i }
+          }
+          if($navIndex -lt 0 -or $syncIndex -lt 0) { throw 'MainWindow sync-start patch target not found' }
+          $nav = $lines[$navIndex].Replace('ready=true;','if(ready)return;ready=true;').Replace('SendStatus(false,"","로컬");};Browser.Source','SendStatus(false,"","로컬");sync.Start();};Browser.Source')
+          $syncLine = $lines[$syncIndex].Replace('sync.Start();','')
+          $lines[$navIndex] = $syncLine
+          $lines[$syncIndex] = $nav
+          [IO.File]::WriteAllLines($r, $lines, [Text.UTF8Encoding]::new($false))
 
       - name: Restore
         shell: pwsh
