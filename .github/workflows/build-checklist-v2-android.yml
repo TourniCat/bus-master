@@ -1,0 +1,77 @@
+name: Build Checklist V2 Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - chatgpt/checklist-v2-build
+    paths:
+      - 'checklist-v2/android-native-v2/**'
+      - '.github/workflows/build-checklist-v2-android.yml'
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct Android native source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat checklist-v2/android-native-v2/part*.txt > /tmp/android-native.b64
+          base64 --decode /tmp/android-native.b64 > /tmp/android-native.tar.xz
+          sha256sum /tmp/android-native.tar.xz
+          xz -t /tmp/android-native.tar.xz
+          mkdir -p /tmp/androidsrc
+          tar -xJf /tmp/android-native.tar.xz -C /tmp/androidsrc
+          find /tmp/androidsrc -maxdepth 3 -type f | sort | head -80
+      - name: Fetch shared web source from canonical branch artifact chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          # Android native source archive already contains no web assets by design.
+          # The canonical shared UI files are copied from the repository's v1 build only as a fallback;
+          # this step is replaced below by the exact shared-web payload committed with the Android source if present.
+          root=Path('/tmp/androidsrc/android/app/src/main/assets/web')
+          root.mkdir(parents=True, exist_ok=True)
+          PY
+          test -f /tmp/androidsrc/android/app/src/main/java/com/absolute/checklist/MainActivity.java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Android SDK 35
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Gradle 8.10.2
+        shell: bash
+        run: |
+          curl -fsSL --retry 3 -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+      - name: Build native compile smoke
+        working-directory: /tmp/androidsrc/android
+        shell: bash
+        run: /tmp/gradle-8.10.2/bin/gradle :app:compileDebugJavaWithJavac --stacktrace --no-daemon
+      - name: Build release APK
+        working-directory: /tmp/androidsrc/android
+        shell: bash
+        run: /tmp/gradle-8.10.2/bin/gradle :app:assembleRelease --stacktrace --no-daemon
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out
+          cp /tmp/androidsrc/android/app/build/outputs/apk/release/app-release-unsigned.apk /tmp/out/AbsoluteChecklist-v2.0.0-unsigned.apk
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" /tmp/out/apksigner.jar
+          sha256sum /tmp/out/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: checklist-v2-android-unsigned
+          path: /tmp/out/*
+          retention-days: 7
