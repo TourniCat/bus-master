@@ -82,6 +82,12 @@ jobs:
           t=t.replace('public String appInfo(String ignored){JSONObject o=new JSONObject();try{o.put("deviceId",storage.getDeviceId()).put("deviceLabel",storage.getDeviceLabel()).put("version","2.0.0 Android");}catch(Exception ignored){}',
                       'public String appInfo(String ignored){JSONObject o=new JSONObject();try{o.put("deviceId",storage.getDeviceId()).put("deviceLabel",storage.getDeviceLabel()).put("version","2.0.0 Android");}catch(Exception ex){}')
           q.write_text(t, encoding='utf-8')
+          for name in ('backup_rules.xml','data_extraction_rules.xml'):
+              x=Path('/tmp/androidsrc/app/src/main/res/xml')/name
+              u=x.read_text(encoding='utf-8')
+              u=u.replace('        <exclude domain="sharedpref" path="checklist_secure.xml" />\n','')
+              u=u.replace('    <exclude domain="sharedpref" path="checklist_secure.xml" />\n','')
+              x.write_text(u, encoding='utf-8')
           PY
       - name: Enable AndroidX
         shell: bash
