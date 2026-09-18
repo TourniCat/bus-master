@@ -36,6 +36,15 @@ jobs:
           Write-Host "source sha256=$hash"
           if($hash -ne "73cbdf34d1b7afeb557ea901b47a6e85e606aad1d3910383a5b6ff6a8cdc400e"){ Write-Warning "source archive checksum differs; attempting structural extraction/build" }
           Expand-Archive "$env:RUNNER_TEMP\windows-v2-source.zip" "$env:RUNNER_TEMP\source"
+      - name: Repair generated checklist web data
+        shell: pwsh
+        run: |
+          $jsonPath = "$env:RUNNER_TEMP\source\windows\web\checklist.json"
+          $jsPath = "$env:RUNNER_TEMP\source\windows\web\checklist-data.js"
+          $obj = Get-Content $jsonPath -Raw | ConvertFrom-Json
+          $min = $obj | ConvertTo-Json -Depth 20 -Compress
+          [IO.File]::WriteAllText($jsPath, "window.INITIAL_CHECKLIST = $min;`n", [Text.UTF8Encoding]::new($false))
+
       - name: Patch known source transport fixes
         shell: pwsh
         run: |
