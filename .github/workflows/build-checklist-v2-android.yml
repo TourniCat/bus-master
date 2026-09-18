@@ -77,6 +77,11 @@ jobs:
           s=s.replace('catch(Exception e){return Result.retry();}', 'catch(Exception e){return Result.success();}')
           p.write_text(s, encoding='utf-8')
           assert 'Result.retry()' not in p.read_text(encoding='utf-8')
+          q=Path('/tmp/androidsrc/app/src/main/java/com/absolute/checklist/MainActivity.java')
+          t=q.read_text(encoding='utf-8')
+          t=t.replace('public String appInfo(String ignored){JSONObject o=new JSONObject();try{o.put("deviceId",storage.getDeviceId()).put("deviceLabel",storage.getDeviceLabel()).put("version","2.0.0 Android");}catch(Exception ignored){}',
+                      'public String appInfo(String ignored){JSONObject o=new JSONObject();try{o.put("deviceId",storage.getDeviceId()).put("deviceLabel",storage.getDeviceLabel()).put("version","2.0.0 Android");}catch(Exception ex){}')
+          q.write_text(t, encoding='utf-8')
           PY
       - name: Enable AndroidX
         shell: bash
