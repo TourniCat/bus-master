@@ -1,0 +1,34 @@
+name: Build Checklist V2.1
+on:
+  push:
+    branches: [chatgpt/checklist-v21-build]
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct v2.1 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat checklist-v21/blob-*.txt | base64 -d > /tmp/overlay.tar.xz
+          echo "34bbef51b18abb1bcd0ebbc5f910459e7b07fceee702cd2284862ec78ab02d9a  /tmp/overlay.tar.xz" | sha256sum -c -
+          xz -t /tmp/overlay.tar.xz
+          mkdir /tmp/overlay
+          tar -xJf /tmp/overlay.tar.xz -C /tmp/overlay
+          test -f /tmp/overlay/checklist-v21/web/app.js
+          test -f /tmp/overlay/checklist-v21/server/server.js
+          node --check /tmp/overlay/checklist-v21/web/app.js
+          node --check /tmp/overlay/checklist-v21/server/server.js
+          grep -q "캐셔 설정" /tmp/overlay/checklist-v21/web/index.html
+          grep -q "changePassword" /tmp/overlay/checklist-v21/web/app.js
+          grep -q "cashier" /tmp/overlay/checklist-v21/server/server.js
+          grep -q "toast" /tmp/overlay/checklist-v21/web/app.js
+      - name: Package verified source
+        run: cp /tmp/overlay.tar.xz MiRA-Checklist-v2.1.0-source.tar.xz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiRA-Checklist-v2.1.0-source
+          path: MiRA-Checklist-v2.1.0-source.tar.xz
+          retention-days: 7
