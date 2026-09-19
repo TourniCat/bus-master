@@ -88,6 +88,11 @@ jobs:
         run: |
           dotnet publish /tmp/overlay/windows/AbsoluteChecklist.Windows.csproj -c Release -r win-x64 --self-contained true -p:EnableWindowsTargeting=true -p:PublishSingleFile=false -p:DebugType=None -o /tmp/winpublish
           cd /tmp/winpublish && zip -qr /tmp/out/MiRA-Checklist-Windows-v2.1.1-win-x64.zip .
+      - name: Export APK signing utility
+        run: |
+          JAR="$(find ~/.gradle/caches -type f -name 'apksig-8.7.3.jar' | head -1)"
+          test -n "$JAR"
+          cp "$JAR" /tmp/out/apksig-8.7.3.jar
       - name: Hash deliverables
         run: sha256sum /tmp/out/*
       - uses: actions/upload-artifact@v4
