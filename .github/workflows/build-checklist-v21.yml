@@ -70,6 +70,11 @@ jobs:
           /tmp/gradle-8.10.2/bin/gradle :app:compileDebugJavaWithJavac :app:assembleRelease --stacktrace --no-daemon
           mkdir -p /tmp/out
           cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/out/MiRA-Checklist-Android-v2.1.0-unsigned.apk
+          keytool -genkeypair -v -keystore /tmp/mira-v21-release.jks -storepass mira210release -keypass mira210release -alias mira-v21 -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=MiRA Checklist, OU=Absolute Universe, O=MiRA, C=KR"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -p 4 /tmp/out/MiRA-Checklist-Android-v2.1.0-unsigned.apk /tmp/out/MiRA-Checklist-Android-v2.1.0-aligned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks /tmp/mira-v21-release.jks --ks-pass pass:mira210release --key-pass pass:mira210release --ks-key-alias mira-v21 --out /tmp/out/MiRA-Checklist-Android-v2.1.0.apk /tmp/out/MiRA-Checklist-Android-v2.1.0-aligned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/out/MiRA-Checklist-Android-v2.1.0.apk
+          cp /tmp/mira-v21-release.jks /tmp/out/MiRA-Checklist-v2.1-release-key.jks
       - name: Windows x64 publish
         shell: bash
         run: |
