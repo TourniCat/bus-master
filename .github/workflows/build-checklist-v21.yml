@@ -27,6 +27,41 @@ jobs:
           grep -Eqi "password|비밀번호" /tmp/overlay/shared-web/app.js || { echo "missing password flow"; exit 22; }
           grep -Eqi "cashier|캐셔" /tmp/overlay/gateway/checklist_sync.py || { echo "missing cashier sync"; exit 23; }
           grep -Eqi "toast|snackbar|알림" /tmp/overlay/shared-web/app.js || { echo "missing result notification"; exit 24; }
+      - name: Apply v2.1.1 UX hotfixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/overlay/shared-web/app.js')
+          s=p.read_text(encoding='utf-8')
+          # keep settings open when child password dialog closes
+          s=s.replace("closePassword(); closeSettings();","closePassword();")
+          s=s.replace("closePassword();closeSettings();","closePassword();")
+          # ensure cashier settings action is always exposed next to sync
+          if "openCashierSettings" not in s:
+              s += "\nwindow.openCashierSettings=()=>document.getElementById('cashierModal')?.classList.add('show');\n"
+          p.write_text(s,encoding='utf-8')
+          p=Path('/tmp/overlay/shared-web/index.html')
+          s=p.read_text(encoding='utf-8')
+          if 'id="cashierSettingsBtn"' not in s:
+              s=s.replace('id="syncNowBtn"', 'id="cashierSettingsBtn" onclick="openCashierSettings()">캐셔 설정</button><button id="syncNowBtn"')
+          p.write_text(s,encoding='utf-8')
+          p=Path('/tmp/overlay/shared-web/style.css')
+          s=p.read_text(encoding='utf-8')
+          s += """
+          /* v2.1.1 motion consistency */
+          .top-shell,.topbar,.header-shell,.nav-shell{transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .22s ease,max-height .28s cubic-bezier(.2,.8,.2,1)!important;will-change:transform}
+          .top-shell.hidden,.topbar.hidden,.header-shell.hidden,.nav-shell.hidden{transform:translateY(-105%)!important}
+          .modal,.sheet,.bottom-sheet,.settings-panel{transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .22s ease!important}
+          .task-card .toggle,.task-card .chevron,.task-card .fold,.task-card [data-fold]{font-size:2.4rem!important;min-width:48px!important;min-height:48px!important;display:grid!important;place-items:center!important;transform:scale(1.35);transform-origin:center}
+          """
+          p.write_text(s,encoding='utf-8')
+          # Android: orientation changes must not recreate/login-lock Activity
+          p=Path('/tmp/overlay/android/app/src/main/AndroidManifest.xml')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('android:exported="true"', 'android:exported="true" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode"')
+          p.write_text(s,encoding='utf-8')
+          PY
       - name: Core logic tests
         run: node --test /tmp/overlay/tests/core.test.js
       - name: Android project structure
@@ -69,28 +104,28 @@ jobs:
           cd /tmp/overlay/android
           /tmp/gradle-8.10.2/bin/gradle :app:compileDebugJavaWithJavac :app:assembleRelease --stacktrace --no-daemon
           mkdir -p /tmp/out
-          cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/out/MiRA-Checklist-Android-v2.1.0-unsigned.apk
+          cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/out/MiRA-Checklist-Android-v2.1.1-unsigned.apk
           keytool -genkeypair -v -keystore /tmp/mira-v21-release.jks -storepass mira210release -keypass mira210release -alias mira-v21 -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=MiRA Checklist, OU=Absolute Universe, O=MiRA, C=KR"
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -p 4 /tmp/out/MiRA-Checklist-Android-v2.1.0-unsigned.apk /tmp/out/MiRA-Checklist-Android-v2.1.0-aligned.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks /tmp/mira-v21-release.jks --ks-pass pass:mira210release --key-pass pass:mira210release --ks-key-alias mira-v21 --out /tmp/out/MiRA-Checklist-Android-v2.1.0.apk /tmp/out/MiRA-Checklist-Android-v2.1.0-aligned.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/out/MiRA-Checklist-Android-v2.1.0.apk
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -p 4 /tmp/out/MiRA-Checklist-Android-v2.1.1-unsigned.apk /tmp/out/MiRA-Checklist-Android-v2.1.1-aligned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks /tmp/mira-v21-release.jks --ks-pass pass:mira210release --key-pass pass:mira210release --ks-key-alias mira-v21 --out /tmp/out/MiRA-Checklist-Android-v2.1.1.apk /tmp/out/MiRA-Checklist-Android-v2.1.1-aligned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs /tmp/out/MiRA-Checklist-Android-v2.1.1.apk
           cp /tmp/mira-v21-release.jks /tmp/out/MiRA-Checklist-v2.1-release-key.jks
       - name: Windows x64 publish
         shell: bash
         run: |
           dotnet publish /tmp/overlay/windows/AbsoluteChecklist.Windows.csproj -c Release -r win-x64 --self-contained true -p:EnableWindowsTargeting=true -p:PublishSingleFile=false -p:DebugType=None -o /tmp/winpublish
-          cd /tmp/winpublish && zip -qr /tmp/out/MiRA-Checklist-Windows-v2.1.0-win-x64.zip .
+          cd /tmp/winpublish && zip -qr /tmp/out/MiRA-Checklist-Windows-v2.1.1-win-x64.zip .
       - name: Hash deliverables
         run: sha256sum /tmp/out/*
       - uses: actions/upload-artifact@v4
         with:
-          name: MiRA-Checklist-v2.1.0-builds
+          name: MiRA-Checklist-v2.1.1-builds
           path: /tmp/out/*
           retention-days: 7
       - name: Package verified source
-        run: cp /tmp/overlay.tar.xz MiRA-Checklist-v2.1.0-source.tar.xz
+        run: cp /tmp/overlay.tar.xz MiRA-Checklist-v2.1.1-source.tar.xz
       - uses: actions/upload-artifact@v4
         with:
-          name: MiRA-Checklist-v2.1.0-source
-          path: MiRA-Checklist-v2.1.0-source.tar.xz
+          name: MiRA-Checklist-v2.1.1-source
+          path: MiRA-Checklist-v2.1.1-source.tar.xz
           retention-days: 7
