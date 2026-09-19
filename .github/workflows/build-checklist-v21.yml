@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           dotnet --version
-          dotnet build /tmp/overlay/windows/AbsoluteChecklist.Windows.csproj -c Release
+          dotnet build /tmp/overlay/windows/AbsoluteChecklist.Windows.csproj -c Release -p:EnableWindowsTargeting=true
       - name: Package verified source
         run: cp /tmp/overlay.tar.xz MiRA-Checklist-v2.1.0-source.tar.xz
       - uses: actions/upload-artifact@v4
