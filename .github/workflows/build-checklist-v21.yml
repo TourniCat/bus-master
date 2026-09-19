@@ -19,13 +19,13 @@ jobs:
           tar -xJf /tmp/overlay.tar.xz -C /tmp/overlay
           echo "archive paths:"; find /tmp/overlay -maxdepth 4 -type f | sort
           test -f /tmp/overlay/shared-web/app.js || { echo "missing web app"; exit 9; }
-          test -f /tmp/overlay/server/server.js || { echo "missing server app"; exit 10; }
+          test -f /tmp/overlay/gateway/checklist_sync.py || { echo "missing gateway sync"; exit 10; }
           echo "checking web JS"; node --check /tmp/overlay/shared-web/app.js || exit 11
-          echo "checking server JS"; node --check /tmp/overlay/server/server.js || exit 12
+          echo "checking gateway Python"; python -m py_compile /tmp/overlay/gateway/checklist_sync.py || exit 12
           echo "checking UI marker"
           grep -q "캐셔 설정" /tmp/overlay/shared-web/index.html || { echo "missing cashier settings UI"; exit 21; }
           grep -Eqi "password|비밀번호" /tmp/overlay/shared-web/app.js || { echo "missing password flow"; exit 22; }
-          grep -Eqi "cashier|캐셔" /tmp/overlay/server/server.js || { echo "missing cashier sync"; exit 23; }
+          grep -Eqi "cashier|캐셔" /tmp/overlay/gateway/checklist_sync.py || { echo "missing cashier sync"; exit 23; }
           grep -Eqi "toast|snackbar|알림" /tmp/overlay/shared-web/app.js || { echo "missing result notification"; exit 24; }
       - name: Package verified source
         run: cp /tmp/overlay.tar.xz MiRA-Checklist-v2.1.0-source.tar.xz
