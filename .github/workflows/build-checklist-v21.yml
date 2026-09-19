@@ -15,7 +15,7 @@ jobs:
           cat checklist-v21/blob-*.txt | base64 -d > /tmp/overlay.tar.xz
           echo "34bbef51b18abb1bcd0ebbc5f910459e7b07fceee702cd2284862ec78ab02d9a  /tmp/overlay.tar.xz" | sha256sum -c -
           xz -t /tmp/overlay.tar.xz
-          mkdir /tmp/overlay
+          rm -rf /tmp/overlay && mkdir -p /tmp/overlay
           tar -xJf /tmp/overlay.tar.xz -C /tmp/overlay
           test -f /tmp/overlay/checklist-v21/web/app.js
           test -f /tmp/overlay/checklist-v21/server/server.js
