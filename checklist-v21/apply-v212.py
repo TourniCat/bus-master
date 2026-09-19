@@ -1,5 +1,5 @@
 from pathlib import Path
-r=Path("/tmp/overlay")
+r=Path("/tmp/app")
 def rw(p,f):
  p=r/p;s=p.read_text(encoding="utf-8");p.write_text(f(s),encoding="utf-8")
 def html(s):
