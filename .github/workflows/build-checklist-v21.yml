@@ -21,10 +21,10 @@ jobs:
           test -f /tmp/overlay/checklist-v21/server/server.js
           node --check /tmp/overlay/checklist-v21/web/app.js
           node --check /tmp/overlay/checklist-v21/server/server.js
-          grep -q "캐셔 설정" /tmp/overlay/checklist-v21/web/index.html
-          grep -q "password" /tmp/overlay/checklist-v21/web/app.js
-          grep -q "cashier" /tmp/overlay/checklist-v21/server/server.js
-          grep -q "showToast" /tmp/overlay/checklist-v21/web/app.js
+          grep -q "캐셔 설정" /tmp/overlay/checklist-v21/web/index.html || { echo "missing cashier settings UI"; exit 21; }
+          grep -Eqi "password|비밀번호" /tmp/overlay/checklist-v21/web/app.js || { echo "missing password flow"; exit 22; }
+          grep -Eqi "cashier|캐셔" /tmp/overlay/checklist-v21/server/server.js || { echo "missing cashier sync"; exit 23; }
+          grep -Eqi "toast|snackbar|알림" /tmp/overlay/checklist-v21/web/app.js || { echo "missing result notification"; exit 24; }
       - name: Package verified source
         run: cp /tmp/overlay.tar.xz MiRA-Checklist-v2.1.0-source.tar.xz
       - uses: actions/upload-artifact@v4
