@@ -44,7 +44,7 @@ jobs:
       - name: Android release
         run: |
           printf '\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n' >> /tmp/app/android/gradle.properties
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" >/dev/null
+          SDKMANAGER="$(command -v sdkmanager || true)"\n          if [ -z "$SDKMANAGER" ]; then SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"; fi\n          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" >/dev/null
           curl -fsSL -o /tmp/g.zip https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
           unzip -q /tmp/g.zip -d /tmp
           cd /tmp/app/android
