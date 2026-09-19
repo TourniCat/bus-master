@@ -27,6 +27,18 @@ jobs:
           grep -Eqi "password|비밀번호" /tmp/overlay/shared-web/app.js || { echo "missing password flow"; exit 22; }
           grep -Eqi "cashier|캐셔" /tmp/overlay/gateway/checklist_sync.py || { echo "missing cashier sync"; exit 23; }
           grep -Eqi "toast|snackbar|알림" /tmp/overlay/shared-web/app.js || { echo "missing result notification"; exit 24; }
+      - name: Core logic tests
+        run: node --test /tmp/overlay/tests/core.test.js
+      - name: Android project structure
+        run: |
+          test -f /tmp/overlay/android/app/build.gradle
+          test -f /tmp/overlay/android/app/src/main/AndroidManifest.xml
+          find /tmp/overlay/android/app/src/main -type f | sort | head -100
+      - name: Windows project compile
+        shell: bash
+        run: |
+          dotnet --version
+          dotnet build /tmp/overlay/windows/AbsoluteChecklist.Windows.csproj -c Release
       - name: Package verified source
         run: cp /tmp/overlay.tar.xz MiRA-Checklist-v2.1.0-source.tar.xz
       - uses: actions/upload-artifact@v4
