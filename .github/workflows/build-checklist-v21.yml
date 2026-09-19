@@ -17,6 +17,14 @@ jobs:
           xz -t /tmp/overlay.tar.xz
           rm -rf /tmp/overlay && mkdir -p /tmp/overlay
           tar -xJf /tmp/overlay.tar.xz -C /tmp/overlay
+          cat checklist-v21/patch00.txt checklist-v21/patch01.txt checklist-v21/patch02.txt | base64 -d | gzip -dc > /tmp/v211.patch
+          patch -p1 -d /tmp/overlay < /tmp/v211.patch
+          cp /tmp/overlay/shared-web/{app.js,index.html,style.css} /tmp/overlay/android/app/src/main/assets/web/
+          cp /tmp/overlay/shared-web/{app.js,index.html,style.css} /tmp/overlay/windows/web/
+          sed -i "s/versionCode 20100/versionCode 20101/; s/versionName '2.1.0'/versionName '2.1.1'/" /tmp/overlay/android/app/build.gradle
+          sed -i 's/2\.1\.0 Android/2.1.1 Android/g' /tmp/overlay/android/app/src/main/java/com/absolute/checklist/MainActivity.java
+          sed -i 's/2\.1\.0 Windows/2.1.1 Windows/g' /tmp/overlay/windows/MainWindow.xaml.cs
+          sed -i "s/'2\.1\.0'/'2.1.1'/g" /tmp/overlay/shared-web/app.js /tmp/overlay/android/app/src/main/assets/web/app.js /tmp/overlay/windows/web/app.js
           echo "archive paths:"; find /tmp/overlay -maxdepth 4 -type f | sort
           test -f /tmp/overlay/shared-web/app.js || { echo "missing web app"; exit 9; }
           test -f /tmp/overlay/gateway/checklist_sync.py || { echo "missing gateway sync"; exit 10; }
