@@ -17,8 +17,9 @@ jobs:
           xz -t /tmp/overlay.tar.xz
           rm -rf /tmp/overlay && mkdir -p /tmp/overlay
           tar -xJf /tmp/overlay.tar.xz -C /tmp/overlay
-          test -f /tmp/overlay/checklist-v21/web/app.js
-          test -f /tmp/overlay/checklist-v21/server/server.js
+          echo "archive paths:"; find /tmp/overlay -maxdepth 4 -type f | sort
+          test -f /tmp/overlay/checklist-v21/web/app.js || { echo "missing web app"; exit 9; }
+          test -f /tmp/overlay/checklist-v21/server/server.js || { echo "missing server app"; exit 10; }
           echo "checking web JS"; node --check /tmp/overlay/checklist-v21/web/app.js || exit 11
           echo "checking server JS"; node --check /tmp/overlay/checklist-v21/server/server.js || exit 12
           echo "checking UI marker"
