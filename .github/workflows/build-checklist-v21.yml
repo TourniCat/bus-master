@@ -38,6 +38,13 @@ jobs:
         shell: bash
         run: |
           dotnet --version
+          python3 - <<'PY'
+          from pathlib import Path
+          for p in [Path('/tmp/overlay/windows/AppStorage.cs'),Path('/tmp/overlay/windows/MainWindow.xaml.cs')]:
+              for i,line in enumerate(p.read_text(encoding='utf-8').splitlines(),1):
+                  if 'var ' in line and ',' in line and ';' in line:
+                      print(f'{p}:{i}:{line}')
+          PY
           dotnet build /tmp/overlay/windows/AbsoluteChecklist.Windows.csproj -c Release -p:EnableWindowsTargeting=true
       - name: Package verified source
         run: cp /tmp/overlay.tar.xz MiRA-Checklist-v2.1.0-source.tar.xz
