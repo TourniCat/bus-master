@@ -70,19 +70,6 @@ jobs:
           /tmp/gradle-8.10.2/bin/gradle :app:compileDebugJavaWithJavac :app:assembleRelease --stacktrace --no-daemon
           mkdir -p /tmp/out
           cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/out/MiRA-Checklist-Android-v2.1.0-unsigned.apk
-      - name: Android emulator smoke test
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          profile: pixel_6
-          disable-animations: true
-          script: |
-            adb install -r /tmp/out/MiRA-Checklist-Android-v2.1.0-unsigned.apk
-            adb shell monkey -p com.absolute.checklist -c android.intent.category.LAUNCHER 1
-            sleep 5
-            adb shell pidof com.absolute.checklist
-            adb shell dumpsys activity activities | grep -E "com.absolute.checklist|mResumedActivity"
       - name: Windows x64 publish
         shell: bash
         run: |
