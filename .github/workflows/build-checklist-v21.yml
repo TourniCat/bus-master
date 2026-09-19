@@ -55,6 +55,33 @@ jobs:
                       print(f'{p}:{i}:{line}')
           PY
           dotnet build /tmp/overlay/windows/AbsoluteChecklist.Windows.csproj -c Release -p:EnableWindowsTargeting=true
+      - name: Android SDK 35 release build
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n' >> /tmp/overlay/android/gradle.properties
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ]; then SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"; fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+          curl -fsSL --retry 3 -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          cd /tmp/overlay/android
+          /tmp/gradle-8.10.2/bin/gradle :app:compileDebugJavaWithJavac :app:assembleRelease --stacktrace --no-daemon
+          mkdir -p /tmp/out
+          cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/out/MiRA-Checklist-Android-v2.1.0-unsigned.apk
+      - name: Windows x64 publish
+        shell: bash
+        run: |
+          dotnet publish /tmp/overlay/windows/AbsoluteChecklist.Windows.csproj -c Release -r win-x64 --self-contained true -p:EnableWindowsTargeting=true -p:PublishSingleFile=false -p:DebugType=None -o /tmp/winpublish
+          cd /tmp/winpublish && zip -qr /tmp/out/MiRA-Checklist-Windows-v2.1.0-win-x64.zip .
+      - name: Hash deliverables
+        run: sha256sum /tmp/out/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiRA-Checklist-v2.1.0-builds
+          path: /tmp/out/*
+          retention-days: 7
       - name: Package verified source
         run: cp /tmp/overlay.tar.xz MiRA-Checklist-v2.1.0-source.tar.xz
       - uses: actions/upload-artifact@v4
