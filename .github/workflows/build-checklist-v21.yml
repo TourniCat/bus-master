@@ -40,6 +40,15 @@ jobs:
           dotnet --version
           python3 - <<'PY'
           from pathlib import Path
+          p=Path('/tmp/overlay/windows/AppStorage.cs'); s=p.read_text(encoding='utf-8')
+          s=s.replace('var salt=Convert.FromBase64String(Secure.PasswordSalt),expected=Convert.FromBase64String(Secure.PasswordHash),actual=Rfc2898DeriveBytes.Pbkdf2(value,salt,120000,HashAlgorithmName.SHA256,32);','var salt=Convert.FromBase64String(Secure.PasswordSalt);var expected=Convert.FromBase64String(Secure.PasswordHash);var actual=Rfc2898DeriveBytes.Pbkdf2(value,salt,120000,HashAlgorithmName.SHA256,32);')
+          p.write_text(s,encoding='utf-8')
+          p=Path('/tmp/overlay/windows/MainWindow.xaml.cs'); s=p.read_text(encoding='utf-8')
+          s=s.replace('var cur=args["currentPassword"]?.GetValue<string>()??"",next=args["newPassword"]?.GetValue<string>()??"";','var cur=args["currentPassword"]?.GetValue<string>()??"";var next=args["newPassword"]?.GetValue<string>()??"";')
+          p.write_text(s,encoding='utf-8')
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
           for p in [Path('/tmp/overlay/windows/AppStorage.cs'),Path('/tmp/overlay/windows/MainWindow.xaml.cs')]:
               for i,line in enumerate(p.read_text(encoding='utf-8').splitlines(),1):
                   if 'var ' in line and ',' in line and ';' in line:
