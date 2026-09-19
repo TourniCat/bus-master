@@ -1,0 +1,62 @@
+name: Build Checklist V2.1.2
+on:
+  push:
+    branches: [chatgpt/checklist-v21-build]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct and patch
+        run: |
+          set -e
+          cat checklist-v21/blob-*.txt | base64 -d > /tmp/base.tar.xz
+          echo "34bbef51b18abb1bcd0ebbc5f910459e7b07fceee702cd2284862ec78ab02d9a  /tmp/base.tar.xz" | sha256sum -c -
+          mkdir -p /tmp/app && tar -xJf /tmp/base.tar.xz -C /tmp/app
+          cat checklist-v21/patch00.txt checklist-v21/patch01.txt checklist-v21/patch02.txt | base64 -d | gzip -dc > /tmp/v211.patch
+          patch -p1 -d /tmp/app < /tmp/v211.patch
+          python3 checklist-v21/apply-v212.py
+          node --check /tmp/overlay/shared-web/app.js 2>/dev/null || node --check /tmp/app/shared-web/app.js
+      - name: Normalize path
+        run: |
+          if [ -d /tmp/overlay ]; then cp -a /tmp/overlay/. /tmp/app/; fi
+          cp /tmp/app/shared-web/{app.js,index.html,style.css} /tmp/app/android/app/src/main/assets/web/
+          cp /tmp/app/shared-web/{app.js,index.html,style.css} /tmp/app/windows/web/
+      - name: Tests
+        run: |
+          node --check /tmp/app/shared-web/app.js
+          node --test /tmp/app/tests/core.test.js
+          python3 -m py_compile /tmp/app/gateway/checklist_sync.py
+          grep -q navCollapseBtn /tmp/app/shared-web/index.html
+          grep -q restoreContextSheet /tmp/app/shared-web/app.js
+          grep -q children-inner /tmp/app/shared-web/app.js
+      - name: Windows compile
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('/tmp/app/windows/AppStorage.cs');s=p.read_text()
+          s=s.replace('var salt=Convert.FromBase64String(Secure.PasswordSalt),expected=Convert.FromBase64String(Secure.PasswordHash),actual=Rfc2898DeriveBytes.Pbkdf2(value,salt,120000,HashAlgorithmName.SHA256,32);','var salt=Convert.FromBase64String(Secure.PasswordSalt);var expected=Convert.FromBase64String(Secure.PasswordHash);var actual=Rfc2898DeriveBytes.Pbkdf2(value,salt,120000,HashAlgorithmName.SHA256,32);');p.write_text(s)
+          p=Path('/tmp/app/windows/MainWindow.xaml.cs');s=p.read_text()
+          s=s.replace('var cur=args["currentPassword"]?.GetValue<string>()??"",next=args["newPassword"]?.GetValue<string>()??"";','var cur=args["currentPassword"]?.GetValue<string>()??"";var next=args["newPassword"]?.GetValue<string>()??"";');p.write_text(s)
+          PY
+          dotnet build /tmp/app/windows/AbsoluteChecklist.Windows.csproj -c Release -p:EnableWindowsTargeting=true
+      - name: Android release
+        run: |
+          printf '\nandroid.useAndroidX=true\nandroid.enableJetifier=true\n' >> /tmp/app/android/gradle.properties
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" >/dev/null
+          curl -fsSL -o /tmp/g.zip https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+          unzip -q /tmp/g.zip -d /tmp
+          cd /tmp/app/android
+          /tmp/gradle-8.10.2/bin/gradle :app:assembleRelease --no-daemon
+          mkdir -p /tmp/out
+          cp app/build/outputs/apk/release/app-release-unsigned.apk /tmp/out/MiRA-Checklist-Android-v2.1.2-unsigned.apk
+      - name: Windows publish
+        run: |
+          dotnet publish /tmp/app/windows/AbsoluteChecklist.Windows.csproj -c Release -r win-x64 --self-contained true -p:EnableWindowsTargeting=true -p:PublishSingleFile=false -p:DebugType=None -o /tmp/win
+          cd /tmp/win && zip -qr /tmp/out/MiRA-Checklist-Windows-v2.1.2-win-x64.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiRA-Checklist-v2.1.2-builds
+          path: /tmp/out/*
+          retention-days: 7
