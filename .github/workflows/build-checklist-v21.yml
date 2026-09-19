@@ -1,7 +1,5 @@
 name: Build Checklist V2.1
 on:
-  push:
-    branches: [chatgpt/checklist-v21-build]
   workflow_dispatch:
 jobs:
   verify:
