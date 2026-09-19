@@ -35,41 +35,6 @@ jobs:
           grep -Eqi "password|비밀번호" /tmp/overlay/shared-web/app.js || { echo "missing password flow"; exit 22; }
           grep -Eqi "cashier|캐셔" /tmp/overlay/gateway/checklist_sync.py || { echo "missing cashier sync"; exit 23; }
           grep -Eqi "toast|snackbar|알림" /tmp/overlay/shared-web/app.js || { echo "missing result notification"; exit 24; }
-      - name: Apply v2.1.1 UX hotfixes
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('/tmp/overlay/shared-web/app.js')
-          s=p.read_text(encoding='utf-8')
-          # keep settings open when child password dialog closes
-          s=s.replace("closePassword(); closeSettings();","closePassword();")
-          s=s.replace("closePassword();closeSettings();","closePassword();")
-          # ensure cashier settings action is always exposed next to sync
-          if "openCashierSettings" not in s:
-              s += "\nwindow.openCashierSettings=()=>document.getElementById('cashierModal')?.classList.add('show');\n"
-          p.write_text(s,encoding='utf-8')
-          p=Path('/tmp/overlay/shared-web/index.html')
-          s=p.read_text(encoding='utf-8')
-          if 'id="cashierSettingsBtn"' not in s:
-              s=s.replace('id="syncNowBtn"', 'id="cashierSettingsBtn" onclick="openCashierSettings()">캐셔 설정</button><button id="syncNowBtn"')
-          p.write_text(s,encoding='utf-8')
-          p=Path('/tmp/overlay/shared-web/style.css')
-          s=p.read_text(encoding='utf-8')
-          s += """
-          /* v2.1.1 motion consistency */
-          .top-shell,.topbar,.header-shell,.nav-shell{transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .22s ease,max-height .28s cubic-bezier(.2,.8,.2,1)!important;will-change:transform}
-          .top-shell.hidden,.topbar.hidden,.header-shell.hidden,.nav-shell.hidden{transform:translateY(-105%)!important}
-          .modal,.sheet,.bottom-sheet,.settings-panel{transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .22s ease!important}
-          .task-card .toggle,.task-card .chevron,.task-card .fold,.task-card [data-fold]{font-size:2.4rem!important;min-width:48px!important;min-height:48px!important;display:grid!important;place-items:center!important;transform:scale(1.35);transform-origin:center}
-          """
-          p.write_text(s,encoding='utf-8')
-          # Android: orientation changes must not recreate/login-lock Activity
-          p=Path('/tmp/overlay/android/app/src/main/AndroidManifest.xml')
-          s=p.read_text(encoding='utf-8')
-          s=s.replace('android:exported="true"', 'android:exported="true" android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode"')
-          p.write_text(s,encoding='utf-8')
-          PY
       - name: Core logic tests
         run: node --test /tmp/overlay/tests/core.test.js
       - name: Android project structure
