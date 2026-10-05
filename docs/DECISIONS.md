@@ -1,0 +1,108 @@
+# Decision Log
+
+This file records decisions already made so future planning does not repeatedly reopen settled questions without a reason.
+
+## 2026-10-06 — Project reset
+
+The retired `bus-master` repository is repurposed for a new tactical auto-battler project.
+
+## Fixed cast instead of random mercenaries
+
+Decision:
+
+- Use authored, persistent protagonists.
+- Do not use PMM-style disposable/random recruitment as the core character model.
+
+Reason:
+
+Character attachment is central to the new concept.
+
+## Remove company-management layer
+
+Decision:
+
+- no PMC-company simulation
+- no employee-management fantasy
+- no large recruitment loop
+
+Premise:
+
+Three friends take armed jobs to make money.
+
+## Three-character team
+
+Decision:
+
+- fixed cast of 3
+- standard deployment of all 3
+
+Earlier alternatives considered:
+
+- 6 characters / 4 deploy
+- 4 characters / 3 deploy
+
+The fixed trio was chosen because it gives the strongest character identity and matches the desired small-team feel.
+
+## Injury handled through downtime
+
+Decision:
+
+Normal mission cadence includes approximately 2–4 weeks between operations.
+
+Minor wounds recover naturally during this period. More severe wounds add extra downtime rather than requiring substitute characters.
+
+## Relationship tone
+
+Decision:
+
+The trio may argue and irritate one another, but their baseline relationship includes professional trust and comradeship.
+
+They entrust their lives to each other.
+
+Relationships are about:
+
+- closeness
+- chemistry
+- arguments
+- friendship
+- reconciliation
+- personal history
+- possible romance
+- value conflicts
+
+They are not a system for making combat AI intentionally unreliable.
+
+## Relationship does not choose tactical support
+
+Explicitly rejected:
+
+- relationship-based healing priority
+- relationship-based covering priority
+
+Reason:
+
+Those behaviors are tactically irrational and undermine the team's professional identity.
+
+## Combat AI principle
+
+Decision:
+
+Characters always attempt to follow the pre-mission plan and perform the best tactical action available.
+
+Character differences affect execution quality, not willingness to behave professionally.
+
+## Planning complexity
+
+Decision:
+
+Do not build a Door Kickers-style detailed path-planning game.
+
+Use lightweight tactical policies similar in spirit to PMM.
+
+## PMM reference use
+
+Decision:
+
+Use PMM's combat, customization, progression, planning UI, map structure and camera design as reference material.
+
+Do not directly copy proprietary content or code into the project.

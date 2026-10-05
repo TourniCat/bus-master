@@ -1,107 +1,47 @@
-# Grow — Living Network Puzzle Prototype
+# Tactical Auto Battler — Working Project
 
-Grow는 **작은 코어에서 시작해 살아있는 네트워크를 직접 키우고, 자원이 고갈되면 오래된 가지를 잘라내며 계속 생존하는 미니멀 시스템 퍼즐**을 테스트하는 프로젝트입니다.
+This repository has been repurposed from the retired `bus-master` prototype.
 
-이 프로젝트의 목표는 특정 테마를 먼저 만드는 것이 아니라, Mini Metro / Mini Motorways처럼 **간단한 입력으로 구조를 만들고 → 그 구조가 작동하는 모습을 보고 → 세계 변화 때문에 다시 수정하는 반복**이 재미있는지 검증하는 것입니다.
+## Current concept
 
-## 왜 Grow인가
+A character-focused tactical auto battler about **three fixed friends who take armed contracts for money**.
 
-이전 Flow Control 프로토타입은 폐기했습니다.
+This is **not** a PMC company-management game.
 
-문제는 밸런스보다 코어 구조였습니다.
+The player does not recruit, fire, or maintain a large roster. The same three protagonists remain the core team throughout the game.
 
-- 플레이어 조작과 결과 사이에 AI 경로 재계산이 끼어 결과가 비직관적이었음
-- 한 번 안정화하면 구경하는 시간이 길어 정적이었음
-- 이벤트와 Rush를 추가해도 조작 자체가 간접적이라는 문제는 해결되지 않았음
+### Core loop
 
-Grow는 반대로 **직접 조작 + 즉시 결과**를 우선합니다.
+1. Choose a contract / story mission
+2. Read the briefing
+3. Configure the three characters' weapons and equipment
+4. Set lightweight pre-mission tactical policies
+5. Watch the team execute the plan autonomously
+6. Resolve injuries, rewards and progression
+7. Advance several weeks
+8. Play character / relationship events
+9. Take the next contract
 
-> 드래그해서 가지를 만든다 → 에너지가 즉시 든다 → 자원에 닿으면 수입이 즉시 생긴다 → 자원이 고갈되면 해당 구조가 유지비만 먹는다 → 잘라낸다 → 다시 다른 방향으로 성장한다.
+## Current pillars
 
-## v0.1.0 — Grow Core
+- Three fixed protagonists; all three normally deploy.
+- PMM-style tactical auto combat is the primary mechanical reference.
+- Deep weapon/equipment customization and long-term character growth.
+- Pre-mission planning defines doctrine, not micromanaged movement paths.
+- Combat AI always tries to execute the plan professionally.
+- Personality and relationships never make characters tactically incompetent.
+- Relationships are primarily narrative systems: friendship, minor arguments, reconciliation, personal history and possible romance.
+- Injury is mainly a **time cost**, not a roster-management problem.
+- Contracts are normally separated by roughly 2–4 weeks; serious injuries can increase downtime.
 
-### 핵심 규칙
+## Reference policy
 
-- 화면 중앙의 Core 하나에서 시작
-- 주변에 Nutrient가 생성됨
-- 기존 흰색 junction에서 **왼쪽 드래그**로 새 가지 성장
-- 가지 길이에 비례해 성장 Energy 소비
-- 끝점이 Nutrient에 가까우면 자동으로 스냅되어 연결
-- 연결된 Nutrient는 서서히 고갈되며 Energy를 공급
-- 모든 살아있는 가지는 길이에 비례해 지속 Upkeep 발생
-- Nutrient가 고갈되어도 가지 Upkeep은 계속 발생
-- 가지를 **우클릭**하면 해당 가지와 그 이후의 모든 자식 가지를 Prune
-- Prune 시 일부 Energy를 회수하고 Upkeep을 즉시 줄임
-- Energy가 0이 되면 Game Over
-- 누적 흡수량 `ABSORBED`가 현재 Score
+Private Military Manager: Tactical Auto Battler (PMM) is used as a design and technical reference.
 
-### 네트워크 구조
+Do **not** copy PMM source code, art, text, names, maps, UI assets, or other protected expression into this project. Reimplement mechanics and design principles independently.
 
-네트워크는 트리 형태입니다.
-
-기존 줄기에서 분기하면 trunk를 공유하므로 여러 자원까지 각각 Core에서 새 선을 만드는 것보다 총 길이와 Upkeep을 아낄 수 있습니다.
-
-활성 Nutrient가 많이 매달린 trunk는 화면에서 더 굵게 표시됩니다. 연결된 Nutrient에서는 작은 에너지 펄스가 Core 방향으로 흐릅니다.
-
-### 자원의 수명
-
-Nutrient는 영구적이지 않습니다.
-
-- 연결하면 Energy를 생산
-- 시간이 지나면 고갈
-- 고갈된 자원은 잠시 빈 흔적으로 남음
-- 오래된 가지를 그대로 두면 유지비만 발생
-
-따라서 목표하는 반복은:
-
-`탐색 → 성장 → 수확 → 과확장 → 고갈 → 가지치기 → 재성장`
-
-입니다.
-
-## 조작
-
-- `Left Drag`: 흰색 Core/junction에서 새 가지 성장
-- `Right Click`: 가지와 이후 subtree 가지치기
-- `Space`: Pause / Resume
-- `N`: New Map
-- `1 / 2 / 3`: x1 / x2 / x3 배속
-
-오른쪽 패널의 버튼으로도 Pause, New Map, 배속을 조절할 수 있습니다.
-
-## 실행
-
-```powershell
-git pull
-.\run_prototype.bat
-```
-
-또는 Godot 4.7.x에서 `project.godot`을 직접 실행합니다.
-
-현재 Godot 프로젝트 이름은 `Grow Prototype`입니다.
-
-## 이번 테스트에서 볼 것
-
-첫 버전에서는 콘텐츠를 추가하지 않고 아래만 봅니다.
-
-- Nutrient를 보고 자연스럽게 가지를 뻗고 싶은가?
-- 긴 직선보다 기존 trunk에서 효율적으로 분기하는 고민이 생기는가?
-- 자원이 고갈됐을 때 `이 가지를 이제 잘라야겠다`는 판단이 자연스러운가?
-- 가지를 자르는 행동이 손해가 아니라 네트워크를 정리하는 만족감으로 느껴지는가?
-- 시간이 지나며 내가 만든 유기적 구조가 커지는 모습 자체가 만족스러운가?
-- 실패 후 다른 형태로 다시 키워보고 싶은가?
-
-이 반복 자체가 재미없으면 Thickness, 업그레이드, 위험 지역 같은 기능을 붙이지 않고 코어를 다시 버립니다.
-
-## 테마
-
-현재 Nutrient / living network 표현은 임시입니다.
-
-코어가 재미있다고 확인된 뒤에만 Mycelium, 뿌리, 산호, 신경망, 외계 생명체 등 실제 테마를 결정합니다.
-
-## OSM
-
-현재 사용하지 않습니다. 게임 코어가 검증된 뒤에도 필요성이 명확할 때만 다시 검토합니다.
-
-## 로그
-
-`run_prototype.bat` 실행 시 `logs/prototype_latest.log`, `logs/godot_engine_latest.log`에 로그가 생성됩니다. 문제가 생기면 `copy_latest_log.bat` 결과를 채팅에 붙여넣으면 됩니다.
+See:
+- [Design Foundation](docs/DESIGN_FOUNDATION.md)
+- [PMM Reference Notes](docs/PMM_REFERENCE.md)
+- [Decision Log](docs/DECISIONS.md)
+- [Planning Questions](docs/PLANNING.md)
