@@ -311,18 +311,26 @@ Do not create a separate "Tactics" proficiency. Tactical judgment is part of the
 
 Field proficiency uses a **0–100** scale.
 
-Trait milestones:
+Do not use field proficiency as a large branching perk tree. Most personal progression should be continuous proficiency growth, with only lightweight automatic milestones if needed.
 
-- **20**: automatic core trait
-- **40**: choose 1 of 2 specialization traits
-- **60**: automatic advanced core trait
-- **80**: choose 1 of 2 advanced specialization traits
+The principal player-facing specialization-choice layer moves to **team doctrine** rather than individual perk branches.
 
-Specialization choices can later be changed through retraining.
+### Team doctrine
 
-This is intentionally not a large skill tree. The goal is a small number of meaningful divergences while most growth still comes from actual proficiency improvement.
+The three protagonists share a separate doctrine system representing skills that only exist through coordinated practice.
 
-The exact core-attribute list and individual trait contents are **not final**.
+Current doctrine branch candidates:
+
+1. **Entry / CQB**
+2. **Fire & Maneuver**
+3. **Tactical Equipment**
+4. **Team Support / Casualty Response**
+
+Team doctrines may unlock or improve coordinated behaviors such as entry sequencing, target distribution, cross-cover, suppression-and-movement, synchronized throwable use and casualty handling.
+
+Team-doctrine training should normally consume the same downtime block for multiple or all three characters. This creates a meaningful tradeoff between personal training and collective practice.
+
+The exact core-attribute list, personal progression curves and doctrine tree contents are **not final**.
 
 ## 9. Scope discipline
 
