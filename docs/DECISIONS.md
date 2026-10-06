@@ -150,6 +150,34 @@ Reason:
 
 Manual quantity packing adds inventory-management complexity without serving the intended fast pre-mission preparation loop.
 
+## Equipment effects instead of weight management
+
+Decision:
+
+Follow Door Kickers 2's general approach: equipment choice directly changes combat properties rather than asking the player to manage a separate weight/encumbrance system.
+
+Do not expose:
+
+- kilograms
+- carry capacity
+- load percentage
+- weight budgets
+
+Instead, items directly affect values such as:
+
+- movement
+- turning / handling
+- weapon readiness
+- protection
+- sound / concealment
+- special capability
+
+The loadout screen should show the resulting consequences when equipment is changed.
+
+Reason:
+
+The meaningful decision is **which equipment to take**, not inventory arithmetic.
+
 ## No dedicated medical slot
 
 Decision:
