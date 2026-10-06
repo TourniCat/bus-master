@@ -53,11 +53,18 @@ Hard classes are currently disfavored.
 
 ### 4. What does progression feel like?
 
-Need to determine:
+Partial decision:
+
+- Downtime is divided into days.
+- Each day has **3 time blocks**.
+- Training / rest / recovery / story activities can occupy those blocks.
+- The player can shape each protagonist's development through repeated fine-grained scheduling between missions.
+
+Still open:
 
 - mission XP vs use-based skill growth
-- downtime training
-- perk acquisition
+- exact training categories and rates
+- perk / specialty structure
 - equipment economy
 - power curve
 - campaign length
