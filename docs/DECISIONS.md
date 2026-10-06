@@ -178,6 +178,24 @@ Reason:
 
 The meaningful decision is **which equipment to take**, not inventory arithmetic.
 
+## Firearm stat UI follows Door Kickers 2
+
+Decision:
+
+Use Door Kickers 2's firearm stat presentation as the baseline.
+
+Player-facing firearm stats:
+
+- Aim Speed
+- Accuracy
+- Critical / Lethality
+- Reload Speed
+- Maneuverability
+
+Aim Speed, Accuracy and Critical/Lethality are distance-sensitive and should preferably be displayed as curves/graphs. Reload Speed and Maneuverability use simple bars/ratings.
+
+Do not expose every simulation variable in the loadout screen.
+
 ## No dedicated medical slot
 
 Decision:
