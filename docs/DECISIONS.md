@@ -113,15 +113,43 @@ For normal firearms, the default customization axes are:
 
 Primary and secondary weapons may both use this structure where applicable.
 
-Character loadout should stay similarly compact:
-
-- primary weapon
-- secondary weapon
-- armor
-- utility / consumables
-- support / specialist gear
-
 Do not expand into a detailed gunsmith with stocks, grips, handguards, internal parts and other granular attachment slots unless there is a later gameplay reason.
+
+## Final character loadout slots
+
+Decision:
+
+Each protagonist has:
+
+- primary weapon ×1
+- secondary weapon ×1
+- armor ×1
+- tactical gear ×2
+- specialist gear ×1
+
+Tactical gear covers compact consumables/common mission equipment such as grenades, extra ammunition and small medical kits.
+
+Specialist gear is the main role-defining equipment slot and may hold breaching tools, large medical gear, reconnaissance systems, heavy/special weapons, sensors, shields or similar mission equipment.
+
+Reason:
+
+With three fixed protagonists, 2 tactical slots per character give the team six flexible small-equipment choices, while one specialist slot per character creates meaningful temporary roles without hard classes.
+
+## No dedicated medical slot
+
+Decision:
+
+Medical gear competes with other tactical or specialist equipment.
+
+Do not create a permanent medical slot that effectively forces one protagonist to become the team's fixed medic.
+
+## No granular headgear / rig slots by default
+
+Decision:
+
+Do not separately customize helmet, NVG, ear protection, belt, carrier components, etc. by default.
+
+Abstract those through armor, mission conditions or specialist gear unless later playtesting demonstrates a real tactical need.
 
 ## Loadout UX reference
 
