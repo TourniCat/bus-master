@@ -242,6 +242,35 @@ Reason:
 
 The fixed three-character cast needs meaningful long-term customization even though roster selection is absent. Fine-grained downtime scheduling provides that customization axis.
 
+## Character progression structure
+
+Decision:
+
+Character growth uses four layers:
+
+- base attributes
+- weapon proficiency
+- field proficiency
+- traits unlocked by proficiency
+
+There is **no separate qualification/certification layer**.
+
+There is also no traditional perk-point or skill-tree currency by default. Traits should emerge from actual training/proficiency thresholds instead of being purchased from an unrelated tree.
+
+The intended loop is:
+
+training / field use -> proficiency growth -> trait unlocks
+
+Examples of field proficiency areas may include:
+
+- CQB
+- medical
+- breaching
+- support / throwable handling
+- other mission-relevant specialties
+
+Exact categories and thresholds remain to be designed.
+
 ## PMM reference use
 
 Decision:
