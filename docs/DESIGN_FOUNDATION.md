@@ -297,7 +297,19 @@ There is no separate qualification/certification system.
 
 There is also no default perk-point / skill-tree currency. Traits should be earned organically from training and proficiency progression.
 
-The exact attribute list, field-proficiency categories, thresholds and trait list are **not final** and should be reconsidered during renewed planning.
+Field proficiency is divided into exactly five current categories:
+
+1. **CQB**
+2. **Medical**
+3. **Breaching**
+4. **Tactical Gear**
+5. **Fieldcraft**
+
+Weapon proficiency is tracked separately.
+
+Do not create a separate "Tactics" proficiency. Tactical judgment is part of the competent AI baseline; proficiency affects execution quality rather than making low-skill characters choose irrational tactics.
+
+The exact core-attribute list, proficiency thresholds and trait list are **not final**.
 
 ## 9. Scope discipline
 
