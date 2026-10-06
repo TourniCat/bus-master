@@ -285,14 +285,19 @@ Avoid hard class locking.
 
 A character can have natural strengths, but equipment and training should allow substantial role flexibility.
 
-Likely progression layers:
+Progression layers:
 
-1. core attributes
-2. weapon proficiency
-3. perks / specialties
-4. equipment and weapon configuration
+1. **core attributes**
+2. **weapon proficiency**
+3. **field proficiency**
+4. **traits unlocked by proficiency**
+5. equipment and weapon configuration
 
-The exact attribute list is **not final** and should be reconsidered during renewed planning.
+There is no separate qualification/certification system.
+
+There is also no default perk-point / skill-tree currency. Traits should be earned organically from training and proficiency progression.
+
+The exact attribute list, field-proficiency categories, thresholds and trait list are **not final** and should be reconsidered during renewed planning.
 
 ## 9. Scope discipline
 
