@@ -261,15 +261,19 @@ The intended loop is:
 
 training / field use -> proficiency growth -> trait unlocks
 
-Examples of field proficiency areas may include:
+Field proficiency categories are fixed to five areas:
 
-- CQB
-- medical
-- breaching
-- support / throwable handling
-- other mission-relevant specialties
+- **CQB** — close-quarters execution, entries, corner handling, short-range weapon handling
+- **Medical** — first aid, casualty stabilization, treatment speed/efficiency
+- **Breaching** — explosive/mechanical breaching and lock/obstacle handling
+- **Tactical Gear** — grenades, smoke, flashbangs, sensors and other compact tactical equipment
+- **Fieldcraft** — concealment, reconnaissance, movement, environmental adaptation and general field skills
 
-Exact categories and thresholds remain to be designed.
+Weapon proficiency remains separate from field proficiency.
+
+Do not add a separate "Tactics" proficiency. Tactical decision quality belongs to the combat AI baseline; proficiency changes execution quality, not whether the character makes sensible tactical decisions.
+
+Exact proficiency thresholds and trait unlocks remain to be designed.
 
 ## PMM reference use
 
