@@ -69,7 +69,7 @@ Character differences in combat should come from capability, equipment and learn
 
 Planning should stay light.
 
-The game is not trying to become Door Kickers.
+The game is not trying to become Door Kickers' detailed waypoint-planning system.
 
 The intended interaction is closer to defining doctrine than plotting precise movement paths.
 
@@ -84,7 +84,60 @@ Potential policy categories:
 
 The exact number and wording are not yet final.
 
-## 5. Character relationships
+## 5. Equipment and loadout depth
+
+The target customization depth is approximately **Door Kickers 2 level**: enough choices to create meaningful tactical tradeoffs without turning the game into a gunsmith simulator.
+
+### Firearm structure
+
+Each primary and secondary firearm should generally expose only three attachment/configuration axes:
+
+1. **Muzzle**
+2. **Optic**
+3. **Ammunition**
+
+Not every weapon must support every option, and some weapons may have fixed components.
+
+Avoid adding extra slots such as stocks, grips, handguards, rails, triggers, gas systems, internal parts, etc. unless later testing proves that they add meaningful tactical choices.
+
+### Character equipment structure
+
+Use a similarly compact loadout model:
+
+- Primary weapon
+- Secondary weapon
+- Armor
+- Utility / consumable slots
+- Support / specialist gear
+
+Candidate utility and support gear includes:
+
+- fragmentation grenade
+- flashbang
+- smoke grenade
+- breaching charge
+- lock tools
+- medical equipment
+- specialized mission gadgets
+
+Exact slot count is not final.
+
+### UX target
+
+Door Kickers 2 is the current reference for the customization interaction pattern:
+
+- character remains the context
+- large primary/secondary weapon selection
+- small attachment buttons directly associated with the equipped weapon
+- armor and gear choices presented in the same loadout view
+- selecting a slot opens the valid alternatives for that slot
+- stat differences should be immediately readable
+
+Use the **interaction model and information hierarchy** as reference, not its proprietary graphics or exact layout.
+
+The goal is that a player can understand and change a character's complete combat loadout without navigating a multi-level gunsmith interface.
+
+## 6. Character relationships
 
 The three characters can argue, annoy one another and disagree on values, but they are still comrades who trust each other with their lives.
 
@@ -129,7 +182,7 @@ With three protagonists there are only three pair relationships:
 
 This allows each relationship to be written deeply instead of generating many shallow pair combinations.
 
-## 6. Injury and time
+## 7. Injury and time
 
 A fixed three-person team creates a roster problem if injuries routinely prevent deployment.
 
@@ -154,7 +207,7 @@ Possible consequences of extra downtime:
 
 Exact calendar mechanics are not yet designed.
 
-## 7. Progression philosophy
+## 8. Progression philosophy
 
 The same three characters should be configurable into different roles between missions.
 
@@ -171,7 +224,7 @@ Likely progression layers:
 
 The exact attribute list is **not final** and should be reconsidered during renewed planning.
 
-## 8. Scope discipline
+## 9. Scope discipline
 
 Avoid rebuilding the management layers that made the concept larger than necessary.
 
@@ -184,6 +237,7 @@ Currently excluded:
 - office staffing
 - corporate reputation simulation for its own sake
 - base-building unless later justified by the core loop
+- deep gunsmith-style weapon assembly
 
 The game should remain centered on:
 
