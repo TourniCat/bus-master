@@ -136,6 +136,31 @@ Specialist gear is the principal role-defining slot, for example:
 
 The specialist slot is intended to create temporary mission roles without hard character classes.
 
+### Equipment-effect model
+
+Follow **Door Kickers 2-style direct item effects**, not a separate player-facing encumbrance simulation.
+
+The player does **not** manage:
+
+- kilograms
+- carry-capacity limits
+- load percentages
+- magazine weight
+- grenade weight
+- manual weight budgets
+
+Instead, each selected item directly changes the relevant combat properties.
+
+Examples:
+
+- heavier armor directly reduces movement / turning while increasing protection
+- a long or heavy weapon directly reduces handling
+- optics directly change aim/readiness behavior at relevant ranges
+- suppressors directly change sound and handling characteristics
+- specialist equipment may directly impose a mobility or handling penalty
+
+The UI should show the **resulting effects of the selected loadout**, not require the player to calculate why those effects occurred.
+
 ### Slot philosophy
 
 Do **not** create dedicated class-forcing slots such as a mandatory medical slot.
@@ -145,6 +170,8 @@ If a player wants more medical capability, it should consume tactical or special
 Helmet, NVG, ear protection, belt, plate carrier components and similar individual pieces are not separate default customization slots. Keep them abstracted into armor, mission conditions, or specialist equipment unless a strong gameplay reason appears later.
 
 Do not expose magazine-by-magazine ammunition packing or grenade-count packing to the player.
+
+Do not expose a separate weight-management system.
 
 ### UX target
 
@@ -156,6 +183,7 @@ Door Kickers 2 is the current reference for the customization interaction patter
 - armor and gear choices presented in the same loadout view
 - selecting a slot opens the valid alternatives for that slot
 - stat differences should be immediately readable
+- swapping an item should immediately show resulting mobility / handling / protection changes
 
 Use the **interaction model and information hierarchy** as reference, not its proprietary graphics or exact layout.
 
@@ -264,6 +292,7 @@ Currently excluded:
 - deep gunsmith-style weapon assembly
 - granular helmet / carrier / belt component simulation
 - manual ammunition / grenade quantity packing
+- player-facing weight / encumbrance management
 
 The game should remain centered on:
 
