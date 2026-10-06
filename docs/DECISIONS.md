@@ -226,6 +226,22 @@ Use Door Kickers 2's customization screen as the primary UX reference for loadou
 
 Copy the interaction principle and information hierarchy, **not** proprietary art or an exact pixel-for-pixel layout.
 
+## Downtime training structure
+
+Decision:
+
+Between operations, calendar time is actively used rather than skipped as one large training block.
+
+- Each day is divided into **3 time blocks**.
+- Each protagonist can assign training, rest, recovery, or other available downtime activities to those blocks.
+- Story / relationship events can consume or interrupt blocks.
+- Training direction is therefore customizable at a relatively fine level across the 2–4 week interval between contracts.
+- The system should follow PMM's general cadence and granularity rather than abstracting an entire month into one choice.
+
+Reason:
+
+The fixed three-character cast needs meaningful long-term customization even though roster selection is absent. Fine-grained downtime scheduling provides that customization axis.
+
 ## PMM reference use
 
 Decision:
