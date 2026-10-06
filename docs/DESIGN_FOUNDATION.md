@@ -309,7 +309,20 @@ Weapon proficiency is tracked separately.
 
 Do not create a separate "Tactics" proficiency. Tactical judgment is part of the competent AI baseline; proficiency affects execution quality rather than making low-skill characters choose irrational tactics.
 
-The exact core-attribute list, proficiency thresholds and trait list are **not final**.
+Field proficiency uses a **0–100** scale.
+
+Trait milestones:
+
+- **20**: automatic core trait
+- **40**: choose 1 of 2 specialization traits
+- **60**: automatic advanced core trait
+- **80**: choose 1 of 2 advanced specialization traits
+
+Specialization choices can later be changed through retraining.
+
+This is intentionally not a large skill tree. The goal is a small number of meaningful divergences while most growth still comes from actual proficiency improvement.
+
+The exact core-attribute list and individual trait contents are **not final**.
 
 ## 9. Scope discipline
 
