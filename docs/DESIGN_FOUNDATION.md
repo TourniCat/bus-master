@@ -94,7 +94,11 @@ Each primary and secondary firearm should generally expose only three attachment
 
 1. **Muzzle**
 2. **Optic**
-3. **Ammunition**
+3. **Ammunition type**
+
+The player chooses ammunition **type**, not magazine count or individual round quantity.
+
+Ammunition carried into a mission is abstracted / preset by the game in the same general spirit as PMM. Do not turn ammunition into manual inventory packing.
 
 Not every weapon must support every option, and some weapons may have fixed components.
 
@@ -115,8 +119,9 @@ Tactical gear is for compact consumables or commonly carried mission tools, for 
 - fragmentation grenade
 - flashbang
 - smoke grenade
-- extra ammunition
 - compact individual medical kit
+
+For consumables such as grenades, the player selects the **item/type**, not a manually packed quantity. Each equipment item defines its own mission allowance internally.
 
 Specialist gear is the principal role-defining slot, for example:
 
@@ -124,7 +129,6 @@ Specialist gear is the principal role-defining slot, for example:
 - lock / cutting tools
 - large medical kit
 - reconnaissance drone or camera
-- additional ammunition pack
 - grenade launcher or mission-specific heavy weapon
 - anti-armor weapon
 - shield
@@ -139,6 +143,8 @@ Do **not** create dedicated class-forcing slots such as a mandatory medical slot
 If a player wants more medical capability, it should consume tactical or specialist capacity and therefore compete with other useful equipment.
 
 Helmet, NVG, ear protection, belt, plate carrier components and similar individual pieces are not separate default customization slots. Keep them abstracted into armor, mission conditions, or specialist equipment unless a strong gameplay reason appears later.
+
+Do not expose magazine-by-magazine ammunition packing or grenade-count packing to the player.
 
 ### UX target
 
@@ -257,6 +263,7 @@ Currently excluded:
 - base-building unless later justified by the core loop
 - deep gunsmith-style weapon assembly
 - granular helmet / carrier / belt component simulation
+- manual ammunition / grenade quantity packing
 
 The game should remain centered on:
 
