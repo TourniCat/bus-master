@@ -102,25 +102,43 @@ Avoid adding extra slots such as stocks, grips, handguards, rails, triggers, gas
 
 ### Character equipment structure
 
-Use a similarly compact loadout model:
+Each protagonist has the following major loadout slots:
 
-- Primary weapon
-- Secondary weapon
-- Armor
-- Utility / consumable slots
-- Support / specialist gear
+- **Primary weapon ×1**
+- **Secondary weapon ×1**
+- **Armor ×1**
+- **Tactical gear ×2**
+- **Specialist gear ×1**
 
-Candidate utility and support gear includes:
+Tactical gear is for compact consumables or commonly carried mission tools, for example:
 
 - fragmentation grenade
 - flashbang
 - smoke grenade
-- breaching charge
-- lock tools
-- medical equipment
-- specialized mission gadgets
+- extra ammunition
+- compact individual medical kit
 
-Exact slot count is not final.
+Specialist gear is the principal role-defining slot, for example:
+
+- breaching charge
+- lock / cutting tools
+- large medical kit
+- reconnaissance drone or camera
+- additional ammunition pack
+- grenade launcher or mission-specific heavy weapon
+- anti-armor weapon
+- shield
+- sensor / communications gear
+
+The specialist slot is intended to create temporary mission roles without hard character classes.
+
+### Slot philosophy
+
+Do **not** create dedicated class-forcing slots such as a mandatory medical slot.
+
+If a player wants more medical capability, it should consume tactical or specialist capacity and therefore compete with other useful equipment.
+
+Helmet, NVG, ear protection, belt, plate carrier components and similar individual pieces are not separate default customization slots. Keep them abstracted into armor, mission conditions, or specialist equipment unless a strong gameplay reason appears later.
 
 ### UX target
 
@@ -238,6 +256,7 @@ Currently excluded:
 - corporate reputation simulation for its own sake
 - base-building unless later justified by the core loop
 - deep gunsmith-style weapon assembly
+- granular helmet / carrier / belt component simulation
 
 The game should remain centered on:
 
