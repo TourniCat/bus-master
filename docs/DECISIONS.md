@@ -273,7 +273,20 @@ Weapon proficiency remains separate from field proficiency.
 
 Do not add a separate "Tactics" proficiency. Tactical decision quality belongs to the combat AI baseline; proficiency changes execution quality, not whether the character makes sensible tactical decisions.
 
-Exact proficiency thresholds and trait unlocks remain to be designed.
+Proficiency uses a 0–100 scale with four major trait milestones:
+
+- **20** — automatic core trait
+- **40** — choose 1 of 2 specialization traits
+- **60** — automatic advanced core trait
+- **80** — choose 1 of 2 advanced specialization traits
+
+The 40/80 choices are not meant to form a large skill tree. They exist only to create limited build divergence between characters with similar proficiency.
+
+Specialization choices may be changed later through retraining rather than permanently bricking a character.
+
+Traits should primarily change execution quality or behavior capability rather than provide generic RPG damage bonuses.
+
+Exact trait contents for each proficiency remain to be designed.
 
 ## PMM reference use
 
