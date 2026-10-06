@@ -99,6 +99,44 @@ Do not build a Door Kickers-style detailed path-planning game.
 
 Use lightweight tactical policies similar in spirit to PMM.
 
+## Loadout customization depth
+
+Decision:
+
+Use approximately **Door Kickers 2-level equipment depth**.
+
+For normal firearms, the default customization axes are:
+
+- muzzle
+- optic
+- ammunition
+
+Primary and secondary weapons may both use this structure where applicable.
+
+Character loadout should stay similarly compact:
+
+- primary weapon
+- secondary weapon
+- armor
+- utility / consumables
+- support / specialist gear
+
+Do not expand into a detailed gunsmith with stocks, grips, handguards, internal parts and other granular attachment slots unless there is a later gameplay reason.
+
+## Loadout UX reference
+
+Decision:
+
+Use Door Kickers 2's customization screen as the primary UX reference for loadout editing:
+
+- weapon and its small modification slots are visually grouped
+- primary and secondary weapons use the same basic interaction pattern
+- armor and mission gear live in the same character loadout context
+- clicking a slot exposes compatible alternatives
+- comparison information should be immediately visible
+
+Copy the interaction principle and information hierarchy, **not** proprietary art or an exact pixel-for-pixel layout.
+
 ## PMM reference use
 
 Decision:
