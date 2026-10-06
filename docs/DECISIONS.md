@@ -273,20 +273,69 @@ Weapon proficiency remains separate from field proficiency.
 
 Do not add a separate "Tactics" proficiency. Tactical decision quality belongs to the combat AI baseline; proficiency changes execution quality, not whether the character makes sensible tactical decisions.
 
-Proficiency uses a 0–100 scale with four major trait milestones:
+Field proficiency uses a 0–100 scale.
 
-- **20** — automatic core trait
-- **40** — choose 1 of 2 specialization traits
-- **60** — automatic advanced core trait
-- **80** — choose 1 of 2 advanced specialization traits
+Personal proficiency should primarily improve individual execution quality. Do not build a large personal perk tree.
 
-The 40/80 choices are not meant to form a large skill tree. They exist only to create limited build divergence between characters with similar proficiency.
+The previously proposed 20/40/60/80 branching trait structure is **superseded** by the team-doctrine decision below. If personal proficiency milestones are retained, keep them mostly automatic and lightweight rather than using them as the main build-choice layer.
 
-Specialization choices may be changed later through retraining rather than permanently bricking a character.
+Exact personal progression curves and any lightweight automatic milestones remain to be designed.
 
-Traits should primarily change execution quality or behavior capability rather than provide generic RPG damage bonuses.
+## Separate personal proficiency from team doctrine
 
-Exact trait contents for each proficiency remain to be designed.
+Decision:
+
+Use two distinct growth layers:
+
+### Personal growth
+
+Each protagonist develops individually through:
+
+- core attributes
+- weapon proficiency
+- field proficiency
+
+Personal proficiency answers: **How well can this person execute a task?**
+
+Examples:
+- one character can become much stronger at CQB than another
+- another can become the team's strongest medic
+- another can specialize in fieldcraft or breaching
+
+### Team doctrine
+
+The trio also develops shared **team doctrines**, inspired by Door Kickers 2's doctrine concept but redesigned for this project.
+
+Team doctrine answers: **How does this three-person team work together?**
+
+Candidate doctrine branches:
+
+- Entry / CQB
+- Fire & Maneuver
+- Tactical Equipment
+- Team Support / Casualty Response
+
+Doctrine effects should focus on coordinated behavior such as:
+
+- cross-cover and spacing
+- entry sequencing
+- target distribution
+- suppression-and-movement coordination
+- grenade / flash / smoke synchronization
+- casualty-cover and treatment handoff
+- coordinated transitions after breaching
+
+Do not use team doctrine merely as another set of generic stat bonuses.
+
+### Training cost
+
+Individual training may occupy one protagonist's time block.
+
+Team-doctrine training should normally require multiple or all three protagonists to spend the **same daily time block**, creating a direct tradeoff between individual improvement and team coordination.
+
+Reason:
+
+The fixed trio needs both strong individual differentiation and a sense that they become better as a team. Separating personal proficiency from team doctrine provides both without turning individual growth into an oversized RPG skill tree.
 
 ## PMM reference use
 
