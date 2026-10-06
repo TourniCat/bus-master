@@ -161,6 +161,24 @@ Examples:
 
 The UI should show the **resulting effects of the selected loadout**, not require the player to calculate why those effects occurred.
 
+### Firearm stat presentation
+
+Follow Door Kickers 2's player-facing firearm stat model.
+
+Show these five primary firearm stats:
+
+- **Aim Speed**
+- **Accuracy**
+- **Critical / Lethality**
+- **Reload Speed**
+- **Maneuverability**
+
+Aim Speed, Accuracy and Critical/Lethality should be represented as **distance-dependent curves or graphs** rather than a single universal number when practical.
+
+Reload Speed and Maneuverability should be shown as compact scalar bars / ratings.
+
+Do not expose every internal firearm variable to the player. Internal values may remain much more detailed, but the loadout UI should summarize them through these few readable outputs.
+
 ### Slot philosophy
 
 Do **not** create dedicated class-forcing slots such as a mandatory medical slot.
