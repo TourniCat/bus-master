@@ -109,7 +109,7 @@ For normal firearms, the default customization axes are:
 
 - muzzle
 - optic
-- ammunition
+- ammunition type
 
 Primary and secondary weapons may both use this structure where applicable.
 
@@ -127,13 +127,28 @@ Each protagonist has:
 - tactical gear ×2
 - specialist gear ×1
 
-Tactical gear covers compact consumables/common mission equipment such as grenades, extra ammunition and small medical kits.
+Tactical gear covers compact consumables/common mission equipment such as grenades and small medical kits.
 
 Specialist gear is the main role-defining equipment slot and may hold breaching tools, large medical gear, reconnaissance systems, heavy/special weapons, sensors, shields or similar mission equipment.
 
 Reason:
 
 With three fixed protagonists, 2 tactical slots per character give the team six flexible small-equipment choices, while one specialist slot per character creates meaningful temporary roles without hard classes.
+
+## Ammunition and throwable quantity abstraction
+
+Decision:
+
+Follow PMM's general simplicity for ammunition and throwables.
+
+- Player chooses ammunition **type**, not magazine count.
+- Player chooses throwable **type/item**, not how many individual grenades are packed.
+- Mission quantities are defined internally by the selected equipment/item.
+- No magazine-by-magazine or grenade-by-grenade packing UI.
+
+Reason:
+
+Manual quantity packing adds inventory-management complexity without serving the intended fast pre-mission preparation loop.
 
 ## No dedicated medical slot
 
